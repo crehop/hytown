@@ -3,6 +3,95 @@
 ## Project Overview
 A chunk-based land claiming plugin for Hytale servers with playtime-based limits and trust system.
 
+## How to Explore the Hytale Server API
+
+The Hytale server API is in `Server/HytaleServer.jar`. Since there's no official documentation, use these commands to discover available classes and methods:
+
+### List All Classes in a Package
+```bash
+cd "/Users/golemgrid/Library/Application Support/Hytale/install/release/package/game/latest/Server"
+
+# Find all event-related classes
+jar -tf HytaleServer.jar | grep -i "event"
+
+# Find player-related classes
+jar -tf HytaleServer.jar | grep -i "player"
+
+# Find block-related classes
+jar -tf HytaleServer.jar | grep -i "block"
+
+# Find all classes in a specific package
+jar -tf HytaleServer.jar | grep "com/hypixel/hytale/server/core/event/events/"
+```
+
+### Inspect a Class (Methods, Fields, Signatures)
+```bash
+# Basic class inspection
+javap -classpath HytaleServer.jar com.hypixel.hytale.server.core.event.events.player.PlayerInteractEvent
+
+# With more detail (private members too)
+javap -p -classpath HytaleServer.jar com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent
+```
+
+### Example: Discovering Block Events
+```bash
+# Step 1: Find all ECS events
+jar -tf HytaleServer.jar | grep "event/events/ecs"
+
+# Output shows:
+# com/hypixel/hytale/server/core/event/events/ecs/BreakBlockEvent.class
+# com/hypixel/hytale/server/core/event/events/ecs/PlaceBlockEvent.class
+# com/hypixel/hytale/server/core/event/events/ecs/DamageBlockEvent.class
+# com/hypixel/hytale/server/core/event/events/ecs/UseBlockEvent.class
+
+# Step 2: Inspect the class to see methods
+javap -classpath HytaleServer.jar com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent
+
+# Output shows:
+# public class BreakBlockEvent extends CancellableEcsEvent {
+#   public Vector3i getTargetBlock();
+#   public BlockType getBlockType();
+#   public void setCancelled(boolean);
+# }
+```
+
+### Example: Finding How to Register Systems
+```bash
+# Find registry-related classes
+jar -tf HytaleServer.jar | grep -i "registry"
+
+# Inspect ComponentRegistryProxy (found in PluginBase.getEntityStoreRegistry())
+javap -classpath HytaleServer.jar com.hypixel.hytale.component.ComponentRegistryProxy
+
+# Shows methods like:
+# registerSystem(ISystem)
+# registerEntityEventType(Class)
+# registerWorldEventType(Class)
+```
+
+### Example: Understanding Event Hierarchy
+```bash
+# Check if an event implements IBaseEvent (can use EventRegistry)
+javap -classpath HytaleServer.jar com.hypixel.hytale.server.core.event.events.player.PlayerInteractEvent
+# Shows: implements IBaseEvent, ICancellable  ✓ Can use EventRegistry
+
+javap -classpath HytaleServer.jar com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent
+# Shows: extends CancellableEcsEvent  ✗ Cannot use EventRegistry, needs EntityEventSystem
+```
+
+### Key Packages to Explore
+```
+com.hypixel.hytale.server.core.plugin        # JavaPlugin, PluginBase
+com.hypixel.hytale.server.core.event.events  # All events
+com.hypixel.hytale.server.core.command       # Command system
+com.hypixel.hytale.server.core.entity        # Entity/Player classes
+com.hypixel.hytale.component                 # ECS system (Store, Ref, Query)
+com.hypixel.hytale.component.system          # EntityEventSystem, EcsEvent
+com.hypixel.hytale.event                     # EventRegistry
+com.hypixel.hytale.math.vector               # Vector3d, Vector3f, Vector3i
+com.hypixel.hytale.protocol                  # InteractionType, etc.
+```
+
 ## Hytale Server Plugin Development
 
 ### Plugin Structure
