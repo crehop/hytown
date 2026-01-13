@@ -24,7 +24,7 @@ That's it! Your builds are now protected.
 
 ## Commands
 
-All commands use `/easyclaims` (or `/ec` for short).
+All commands use `/easyclaims`.
 
 ### Essential Commands
 
@@ -56,15 +56,15 @@ All commands use `/easyclaims` (or `/ec` for short).
 
 | Command | What it does |
 |---------|--------------|
-| `/easyclaims config` | Show current settings |
-| `/easyclaims set <key> <value>` | Change a setting (saves immediately) |
-| `/easyclaims reload` | Reload config from file |
+| `/easyclaims admin config` | Show current settings |
+| `/easyclaims admin set <key> <value>` | Change a setting (saves immediately) |
+| `/easyclaims admin reload` | Reload config from file |
 
 **Example:**
 ```
-/easyclaims set maxClaims 100
-/easyclaims set startingClaims 6
-/easyclaims set claimsPerHour 3
+/easyclaims admin set max 100
+/easyclaims admin set starting 6
+/easyclaims admin set perhour 3
 ```
 
 ---
@@ -128,7 +128,7 @@ perm group add admin easyclaims.admin
 ```
 
 The `easyclaims.use` permission grants access to all player commands (claim, unclaim, trust, etc.).
-The `easyclaims.admin` permission grants access to config/set/reload commands.
+The `easyclaims.admin` permission grants access to `/easyclaims admin` commands (config, set, reload).
 
 ---
 
@@ -155,7 +155,7 @@ Config files are in `mods/Community_EasyClaims/`.
 
 **Formula:** `startingClaims + (hoursPlayed × claimsPerHour)`, max `maxClaims`
 
-**Tip:** Use `/easyclaims set` to change settings in-game without editing files!
+**Tip:** Use `/easyclaims admin set` to change settings in-game without editing files!
 
 ### block_groups.json - Block Permissions
 

@@ -42,9 +42,9 @@ import java.util.UUID;
  *   trustlist                - List trusted players
  *   playtime                 - Show your playtime and claim slots
  *   help                     - Show help
- *   config                   - Show config (admin)
- *   set <key> <value>        - Change config (admin)
- *   reload                   - Reload config (admin)
+ *   admin config             - Show config (admin)
+ *   admin set <key> <value>  - Change config (admin)
+ *   admin reload             - Reload config (admin)
  */
 public class EasyClaimsCommand extends AbstractPlayerCommand {
     private final EasyClaims plugin;
@@ -63,13 +63,20 @@ public class EasyClaimsCommand extends AbstractPlayerCommand {
         requirePermission("easyclaims.use");
     }
 
-    // Parse arguments from raw input string
+    // Parse arguments from raw input string, skipping the command name itself
     private String[] parseArgs(CommandContext ctx) {
         String input = ctx.getInputString().trim();
         if (input.isEmpty()) {
             return new String[0];
         }
-        return input.split("\\s+");
+        String[] allArgs = input.split("\\s+");
+        // Skip the first argument if it's the command name
+        if (allArgs.length > 0 && allArgs[0].equalsIgnoreCase("easyclaims")) {
+            String[] args = new String[allArgs.length - 1];
+            System.arraycopy(allArgs, 1, args, 0, allArgs.length - 1);
+            return args;
+        }
+        return allArgs;
     }
 
     @Override
@@ -119,25 +126,54 @@ public class EasyClaimsCommand extends AbstractPlayerCommand {
             case "help":
                 showHelp(playerData);
                 break;
-            case "config":
-                if (hasAdminPermission(playerData)) {
-                    showConfig(playerData);
-                }
-                break;
-            case "set":
-                if (hasAdminPermission(playerData)) {
-                    handleSet(playerData, arg1, arg2);
-                }
-                break;
-            case "reload":
-                if (hasAdminPermission(playerData)) {
-                    handleReload(playerData);
-                }
+            case "admin":
+                handleAdmin(playerData, args);
                 break;
             default:
                 playerData.sendMessage(Message.raw("Unknown subcommand: " + subcommand).color(RED));
                 showHelp(playerData);
         }
+    }
+
+    // ===== ADMIN =====
+    private void handleAdmin(PlayerRef playerData, String[] args) {
+        if (!hasAdminPermission(playerData)) {
+            return;
+        }
+
+        // args[0] is "admin", so admin subcommand is args[1]
+        if (args.length < 2) {
+            showAdminHelp(playerData);
+            return;
+        }
+
+        String adminSubcmd = args[1];
+        String arg1 = args.length > 2 ? args[2] : null;
+        String arg2 = args.length > 3 ? args[3] : null;
+
+        switch (adminSubcmd.toLowerCase()) {
+            case "config":
+                showConfig(playerData);
+                break;
+            case "set":
+                handleSet(playerData, arg1, arg2);
+                break;
+            case "reload":
+                handleReload(playerData);
+                break;
+            default:
+                playerData.sendMessage(Message.raw("Unknown admin command: " + adminSubcmd).color(RED));
+                showAdminHelp(playerData);
+        }
+    }
+
+    private void showAdminHelp(PlayerRef playerData) {
+        playerData.sendMessage(Message.raw("=== EasyClaims Admin Commands ===").color(GOLD));
+        playerData.sendMessage(Message.raw("/easyclaims admin config - Show current settings").color(GRAY));
+        playerData.sendMessage(Message.raw("/easyclaims admin set <key> <value> - Change a setting").color(GRAY));
+        playerData.sendMessage(Message.raw("/easyclaims admin reload - Reload config from file").color(GRAY));
+        playerData.sendMessage(Message.raw("").color(GRAY));
+        playerData.sendMessage(Message.raw("Settings: starting, perhour, max").color(AQUA));
     }
 
     // ===== CLAIM =====
@@ -396,19 +432,19 @@ public class EasyClaimsCommand extends AbstractPlayerCommand {
         playerData.sendMessage(Message.raw("Maximum claims allowed: " + config.getMaxClaims()).color(AQUA));
         playerData.sendMessage(Message.raw("").color(GRAY));
         playerData.sendMessage(Message.raw("To change these settings:").color(GRAY));
-        playerData.sendMessage(Message.raw("  /easyclaims set starting <number>").color(YELLOW));
-        playerData.sendMessage(Message.raw("  /easyclaims set perhour <number>").color(YELLOW));
-        playerData.sendMessage(Message.raw("  /easyclaims set max <number>").color(YELLOW));
+        playerData.sendMessage(Message.raw("  /easyclaims admin set starting <number>").color(YELLOW));
+        playerData.sendMessage(Message.raw("  /easyclaims admin set perhour <number>").color(YELLOW));
+        playerData.sendMessage(Message.raw("  /easyclaims admin set max <number>").color(YELLOW));
     }
 
     private void handleSet(PlayerRef playerData, String key, String valueStr) {
         if (key == null || valueStr == null) {
             playerData.sendMessage(Message.raw("How to change settings:").color(GOLD));
-            playerData.sendMessage(Message.raw("  /easyclaims set starting <number>").color(YELLOW));
+            playerData.sendMessage(Message.raw("  /easyclaims admin set starting <number>").color(YELLOW));
             playerData.sendMessage(Message.raw("    How many claims new players start with").color(GRAY));
-            playerData.sendMessage(Message.raw("  /easyclaims set perhour <number>").color(YELLOW));
+            playerData.sendMessage(Message.raw("  /easyclaims admin set perhour <number>").color(YELLOW));
             playerData.sendMessage(Message.raw("    Extra claims earned per hour played").color(GRAY));
-            playerData.sendMessage(Message.raw("  /easyclaims set max <number>").color(YELLOW));
+            playerData.sendMessage(Message.raw("  /easyclaims admin set max <number>").color(YELLOW));
             playerData.sendMessage(Message.raw("    Maximum claims any player can have").color(GRAY));
             return;
         }
@@ -417,7 +453,7 @@ public class EasyClaimsCommand extends AbstractPlayerCommand {
         try {
             value = Integer.parseInt(valueStr);
         } catch (NumberFormatException e) {
-            playerData.sendMessage(Message.raw("Please enter a number! Example: /easyclaims set max 100").color(RED));
+            playerData.sendMessage(Message.raw("Please enter a number! Example: /easyclaims admin set max 100").color(RED));
             return;
         }
 
