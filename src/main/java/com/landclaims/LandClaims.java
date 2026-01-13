@@ -13,6 +13,10 @@ import com.landclaims.data.PlaytimeStorage;
 import com.landclaims.listeners.ClaimProtectionListener;
 import com.landclaims.managers.ClaimManager;
 import com.landclaims.managers.PlaytimeManager;
+import com.landclaims.systems.BlockBreakProtectionSystem;
+import com.landclaims.systems.BlockDamageProtectionSystem;
+import com.landclaims.systems.BlockPlaceProtectionSystem;
+import com.landclaims.systems.BlockUseProtectionSystem;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 
@@ -60,9 +64,15 @@ public class LandClaims extends JavaPlugin {
         getCommandRegistry().registerCommand(new PlaytimeCommand(this));
         getCommandRegistry().registerCommand(new ClaimHelpCommand(this));
 
-        // Register protection event listeners
+        // Register protection event listeners (for PlayerInteractEvent)
         protectionListener = new ClaimProtectionListener(this);
         protectionListener.register(getEventRegistry());
+
+        // Register ECS block protection systems
+        getEntityStoreRegistry().registerSystem(new BlockDamageProtectionSystem(claimManager));
+        getEntityStoreRegistry().registerSystem(new BlockBreakProtectionSystem(claimManager));
+        getEntityStoreRegistry().registerSystem(new BlockPlaceProtectionSystem(claimManager));
+        getEntityStoreRegistry().registerSystem(new BlockUseProtectionSystem(claimManager));
     }
 
     @Override
