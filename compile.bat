@@ -1,5 +1,5 @@
 @echo off
-set "PROJECT=C:\Users\Crehop\Desktop\HyCrownDev\town\HyTowny"
+set "PROJECT=C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown"
 set "CLASSPATH=%PROJECT%\lib\HytaleServer.jar;%PROJECT%\lib\HyConomy-1.0.0.jar"
 
 cd /d "%PROJECT%"
@@ -13,9 +13,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo Copying resources...
+xcopy /E /Y /I "src\main\resources\*" "target\classes\" >nul 2>&1
+
 echo Creating JAR...
 cd "target\classes"
-jar -cvf "..\hycrown_HyTowny-1.0.0.jar" .
+jar -cvf "..\HyTown-1.0.0.jar" .
 
 echo Done!
 cd /d "%PROJECT%"

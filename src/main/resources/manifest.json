@@ -1,8 +1,8 @@
 {
-    "Group": "hycrown",
-    "Name": "HyTowny",
+    "Group": "Hycrown Development",
+    "Name": "HyTown",
     "Version": "1.0.0",
-    "Main": "com.hytowny.HyTowny",
+    "Main": "com.hytown.HyTown",
     "Description": "Towny-style town and land claiming system with map integration",
     "Authors": [],
     "Website": "",

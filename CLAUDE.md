@@ -1,4 +1,4 @@
-# EasyClaims Plugin - Development Context
+# HyTown Plugin - Development Context
 
 ## Project Overview
 A chunk-based land claiming plugin for Hytale servers with playtime-based limits, trust system, and anti-griefing buffer zones.
@@ -113,9 +113,9 @@ plugins/PluginName/
 ```json
 {
     "Group": "cryptobench",
-    "Name": "EasyClaims",
+    "Name": "HyTown",
     "Version": "1.0.0",
-    "Main": "com.easyclaims.EasyClaims",
+    "Main": "com.hytown.HyTown",
     "Description": "Description here",
     "Authors": [],
     "Dependencies": {}
@@ -285,8 +285,8 @@ if (PermissionsModule.get().hasPermission(playerData.getUuid(), "myplugin.admin"
 ```bash
 # Add permission to a group
 perm group add <GroupName> <permission>
-perm group add Adventure easyclaims.use
-perm group add Adventure easyclaims.admin
+perm group add Adventure hytown.use
+perm group add Adventure hytown.admin
 
 # Remove permission from a group
 perm group remove <GroupName> <permission>
@@ -324,7 +324,7 @@ Located at `Server/permissions.json`:
   },
   "groups": {
     "Default": [],
-    "Adventure": ["easyclaims.use"],
+    "Adventure": ["hytown.use"],
     "OP": ["*"]
   }
 }
@@ -332,11 +332,11 @@ Located at `Server/permissions.json`:
 
 **Important:** Group names are case-sensitive!
 
-### EasyClaims Permissions
+### HyTown Permissions
 | Permission | Description |
 |------------|-------------|
-| `easyclaims.use` | Basic access to /easyclaims command |
-| `easyclaims.admin` | Admin commands (config, set, reload, unclaim) |
+| `hytown.use` | Basic access to /hytown command |
+| `hytown.admin` | Admin commands (config, set, reload, unclaim) |
 
 ## Messages (No Minecraft Color Codes!)
 ```java

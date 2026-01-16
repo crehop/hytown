@@ -1,0 +1,211 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@DecoratedContainer {
+  Anchor: (Width: 550, Height: 700);
+
+  #Title {
+    $C.@Title {
+      @Text = "Plot Settings";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Full: 16);
+
+    Label #StatusMessage {
+      Text: "";
+      Style: (...$C.@DefaultLabelStyle, TextColor: #ff5555);
+      Anchor: (Bottom: 8);
+    }
+
+    Label #PlotTitle {
+      Text: "Plot [0, 0]";
+      Style: (...$C.@DefaultLabelStyle, RenderBold: true, RenderUppercase: true);
+      Anchor: (Bottom: 4);
+    }
+
+    Label #TownName {
+      Text: "Town: Unknown";
+      Style: $C.@DefaultLabelStyle;
+      Anchor: (Bottom: 4);
+    }
+
+    Label #PlotOwner {
+      Text: "Owner: None";
+      Style: $C.@DefaultLabelStyle;
+      Anchor: (Bottom: 12);
+    }
+
+    Group {
+      Anchor: (Vertical: 4, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group #SetOwnerSection {
+      LayoutMode: Top;
+      Anchor: (Bottom: 12);
+
+      Label {
+        Text: "Set Plot Owner";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true, RenderUppercase: true);
+        Anchor: (Bottom: 8);
+      }
+
+      Group {
+        LayoutMode: Left;
+        Anchor: (Bottom: 8);
+
+        $C.@TextField #OwnerNameField {
+          @Anchor = (Width: 250, Height: 38);
+        }
+
+        $C.@TextButton #SetOwnerButton {
+          Text: "Set Owner";
+          Anchor: (Left: 10);
+        }
+      }
+
+      Label {
+        Text: "Leave blank and click to clear owner";
+        Style: (...$C.@DefaultLabelStyle, TextColor: #888888);
+      }
+    }
+
+    Group {
+      Anchor: (Vertical: 8, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group #SettingsSection {
+      LayoutMode: Top;
+      Anchor: (Bottom: 12);
+
+      Label {
+        Text: "Plot Settings";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true, RenderUppercase: true);
+        Anchor: (Bottom: 8);
+      }
+
+      $C.@CheckBoxWithLabel #ProtectionToggle {
+        @Text = "Owner Protection (Only owner + allowed can use containers)";
+      }
+
+      Label {
+        Text: "Override Settings (Click to cycle: Town Default > ON > OFF)";
+        Style: (...$C.@DefaultLabelStyle, TextColor: #888888);
+        Anchor: (Top: 12, Bottom: 8);
+      }
+
+      $C.@TextButton #PvPToggle {
+        Text: "PvP: Use Town Default";
+        Anchor: (Bottom: 6, Width: 400);
+      }
+
+      $C.@TextButton #ExplosionToggle {
+        Text: "Explosions: Use Town Default";
+        Anchor: (Bottom: 6, Width: 400);
+      }
+
+      $C.@TextButton #FireToggle {
+        Text: "Fire Spread: Use Town Default";
+        Anchor: (Bottom: 6, Width: 400);
+      }
+
+      $C.@TextButton #MobsToggle {
+        Text: "Mob Spawning: Use Town Default";
+        Anchor: (Bottom: 6, Width: 400);
+      }
+    }
+
+    Group {
+      Anchor: (Vertical: 8, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group #AllowedPlayersSection {
+      LayoutMode: Top;
+      Anchor: (Bottom: 12);
+
+      Label {
+        Text: "Allowed Players (Container Access)";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true, RenderUppercase: true);
+        Anchor: (Bottom: 8);
+      }
+
+      Group {
+        LayoutMode: Left;
+        Anchor: (Bottom: 8);
+
+        $C.@TextField #AddPlayerField {
+          @Anchor = (Width: 250, Height: 38);
+        }
+
+        $C.@TextButton #AddPlayerButton {
+          Text: "Add";
+          Anchor: (Left: 10);
+        }
+      }
+
+      Group #AllowedList {
+        LayoutMode: Top;
+        Anchor: (Height: 160);
+        Overflow: Scroll;
+
+        Group #Allowed1 { LayoutMode: Left; Anchor: (Bottom: 4);
+          Label #Allowed1Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
+          $C.@TextButton #Allowed1Remove { Text: "Remove"; Anchor: (Left: 8); }
+        }
+        Group #Allowed2 { LayoutMode: Left; Anchor: (Bottom: 4);
+          Label #Allowed2Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
+          $C.@TextButton #Allowed2Remove { Text: "Remove"; Anchor: (Left: 8); }
+        }
+        Group #Allowed3 { LayoutMode: Left; Anchor: (Bottom: 4);
+          Label #Allowed3Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
+          $C.@TextButton #Allowed3Remove { Text: "Remove"; Anchor: (Left: 8); }
+        }
+        Group #Allowed4 { LayoutMode: Left; Anchor: (Bottom: 4);
+          Label #Allowed4Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
+          $C.@TextButton #Allowed4Remove { Text: "Remove"; Anchor: (Left: 8); }
+        }
+        Group #Allowed5 { LayoutMode: Left; Anchor: (Bottom: 4);
+          Label #Allowed5Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
+          $C.@TextButton #Allowed5Remove { Text: "Remove"; Anchor: (Left: 8); }
+        }
+        Group #Allowed6 { LayoutMode: Left; Anchor: (Bottom: 4);
+          Label #Allowed6Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
+          $C.@TextButton #Allowed6Remove { Text: "Remove"; Anchor: (Left: 8); }
+        }
+        Group #Allowed7 { LayoutMode: Left; Anchor: (Bottom: 4);
+          Label #Allowed7Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
+          $C.@TextButton #Allowed7Remove { Text: "Remove"; Anchor: (Left: 8); }
+        }
+        Group #Allowed8 { LayoutMode: Left; Anchor: (Bottom: 4);
+          Label #Allowed8Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
+          $C.@TextButton #Allowed8Remove { Text: "Remove"; Anchor: (Left: 8); }
+        }
+      }
+    }
+
+    Group {
+      Anchor: (Vertical: 8, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group {
+      LayoutMode: Left;
+
+      Label {
+        FlexWeight: 1;
+      }
+
+      $C.@TextButton #CloseButton {
+        Text: "Close";
+      }
+    }
+  }
+}
+
+$C.@BackButton {}
