@@ -1,9 +1,9 @@
 {
-    "Group": "cryptobench",
-    "Name": "EasyClaims",
+    "Group": "hycrown",
+    "Name": "HyTowny",
     "Version": "1.0.0",
-    "Main": "com.easyclaims.EasyClaims",
-    "Description": "Easy chunk-based land claiming with map integration and trust system",
+    "Main": "com.hytowny.HyTowny",
+    "Description": "Towny-style town and land claiming system with map integration",
     "Authors": [],
     "Website": "",
     "Dependencies": {},

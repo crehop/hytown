@@ -1,0 +1,101 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@DecoratedContainer {
+  Anchor: (Width: 650, Height: 700);
+
+  #Title {
+    $C.@Title {
+      @Text = "Transaction Log";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Full: 16);
+
+    Label #TownName {
+      Text: "Town Name";
+      Style: (...$C.@DefaultLabelStyle, RenderBold: true, RenderUppercase: true);
+      Anchor: (Bottom: 8);
+    }
+
+    Label #PageInfo {
+      Text: "Page 1/1 (0 transactions)";
+      Style: (...$C.@DefaultLabelStyle, TextColor: #888888);
+      Anchor: (Bottom: 12);
+    }
+
+    Group {
+      Anchor: (Vertical: 4, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group #LogEntries {
+      LayoutMode: Top;
+      Anchor: (Bottom: 8, Height: 400);
+      Overflow: Scroll;
+
+      Label #Entry1 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry2 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry3 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry4 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry5 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry6 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry7 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry8 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry9 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry10 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry11 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry12 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry13 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry14 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+      Label #Entry15 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
+    }
+
+    Group {
+      Anchor: (Vertical: 8, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Top: 8);
+
+      $C.@TextButton #PrevButton {
+        Text: "< Prev";
+      }
+
+      Label {
+        FlexWeight: 1;
+      }
+
+      $C.@TextButton #NextButton {
+        Text: "Next >";
+      }
+    }
+
+    Group {
+      FlexWeight: 1;
+    }
+
+    Group {
+      LayoutMode: Left;
+
+      $C.@TextButton #BackButton {
+        Text: "Back";
+      }
+
+      Label {
+        FlexWeight: 1;
+      }
+
+      $C.@TextButton #CloseButton {
+        Text: "Close";
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

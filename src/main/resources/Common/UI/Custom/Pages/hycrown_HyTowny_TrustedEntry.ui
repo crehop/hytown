@@ -1,0 +1,29 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Height: 36, Bottom: 4);
+  LayoutMode: Left;
+  Background: $C.@InputBoxBackground;
+  Padding: (Horizontal: 8, Vertical: 4);
+
+  Label #PlayerName {
+    Text: "Player";
+    Style: (...$C.@DefaultLabelStyle, RenderBold: true);
+    Anchor: (Vertical: 0);
+  }
+
+  Label #TrustLevel {
+    Text: "Build";
+    Style: $C.@DefaultLabelStyle;
+    Anchor: (Vertical: 0, Left: 12);
+  }
+
+  Label {
+    FlexWeight: 1;
+  }
+
+  $C.@TextButton #RemoveButton {
+    Text: "Remove";
+    Anchor: (Vertical: 0);
+  }
+}

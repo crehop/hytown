@@ -1,0 +1,66 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@DecoratedContainer {
+  Anchor: (Width: 600, Height: 500);
+
+  #Title {
+    $C.@Title #TitleText {
+      @Text = "Claim Manager";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Full: 16);
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Bottom: 12);
+
+      Label {
+        Text: "Claimed: ";
+        Style: $C.@DefaultLabelStyle;
+      }
+      Label #ClaimedChunksCount {
+        Text: "0";
+        Style: $C.@DefaultLabelStyle;
+      }
+      Label {
+        Text: " / ";
+        Style: $C.@DefaultLabelStyle;
+      }
+      Label #MaxChunksCount {
+        Text: "25";
+        Style: $C.@DefaultLabelStyle;
+      }
+      Label {
+        Text: "    Next: ";
+        Style: $C.@DefaultLabelStyle;
+        Anchor: (Left: 20);
+      }
+      Label #NextClaimTime {
+        Text: "Available!";
+        Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55);
+      }
+    }
+
+    Group {
+      Anchor: (Vertical: 8, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group #ChunkSection {
+      LayoutMode: TopScrolling;
+      FlexWeight: 1;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+      Group #ChunkCards {
+        LayoutMode: Top;
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

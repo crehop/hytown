@@ -1,0 +1,23 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Height: 36, Bottom: 4);
+  LayoutMode: Left;
+  Background: $C.@InputBoxBackground;
+  Padding: (Horizontal: 8, Vertical: 4);
+
+  Label #ChunkCoords {
+    Text: "[0, 0]";
+    Style: (...$C.@DefaultLabelStyle, RenderBold: true);
+    Anchor: (Vertical: 0);
+  }
+
+  Label {
+    FlexWeight: 1;
+  }
+
+  $C.@TextButton #ActionButton {
+    Text: "Unclaim";
+    Anchor: (Vertical: 0);
+  }
+}

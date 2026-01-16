@@ -1,0 +1,129 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@DecoratedContainer {
+  Anchor: (Width: 700, Height: 650);
+
+  #Title {
+    $C.@Title {
+      @Text = "Town Commands Help";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Full: 16);
+
+    Label #PageInfo {
+      Text: "Page 1/1 (0 commands)";
+      Style: (...$C.@DefaultLabelStyle, TextColor: #888888);
+      Anchor: (Bottom: 12);
+    }
+
+    Group {
+      Anchor: (Vertical: 4, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group #CommandList {
+      LayoutMode: Top;
+      Anchor: (Bottom: 8, Height: 420);
+      Overflow: Scroll;
+
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd1 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc1 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd2 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc2 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd3 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc3 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd4 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc4 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd5 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc5 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd6 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc6 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd7 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc7 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd8 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc8 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd9 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc9 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd10 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc10 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd11 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc11 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+      Group { LayoutMode: Left; Anchor: (Bottom: 6);
+        Label #Cmd12 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }
+        Label #Desc12 { Text: ""; Style: $C.@DefaultLabelStyle; FlexWeight: 1; }
+      }
+    }
+
+    Group {
+      Anchor: (Vertical: 8, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Top: 8);
+
+      $C.@TextButton #PrevButton {
+        Text: "< Prev";
+      }
+
+      Label {
+        FlexWeight: 1;
+      }
+
+      $C.@TextButton #NextButton {
+        Text: "Next >";
+      }
+    }
+
+    Group {
+      FlexWeight: 1;
+    }
+
+    Group {
+      LayoutMode: Left;
+
+      Label {
+        Text: "Green = Player | Yellow = Admin";
+        Style: (...$C.@DefaultLabelStyle, TextColor: #888888);
+      }
+
+      Label {
+        FlexWeight: 1;
+      }
+
+      $C.@TextButton #CloseButton {
+        Text: "Close";
+      }
+    }
+  }
+}
+
+$C.@BackButton {}
