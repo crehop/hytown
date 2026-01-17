@@ -49,6 +49,7 @@ public class TownCommand extends AbstractPlayerCommand {
         super("town", "Town management commands");
         addAliases("t");
         setAllowsExtraArguments(true);
+        requirePermission("hytown.use");
         this.plugin = plugin;
     }
 
@@ -525,14 +526,19 @@ public class TownCommand extends AbstractPlayerCommand {
             return;
         }
 
-        world.execute(() -> {
-            Vector3d pos = new Vector3d(town.getSpawnX(), town.getSpawnY(), town.getSpawnZ());
-            Vector3f rot = new Vector3f(town.getSpawnYaw(), town.getSpawnPitch(), 0);
-            Teleport teleport = new Teleport(world, pos, rot);
-            store.addComponent(playerRef, Teleport.getComponentType(), teleport);
-        });
+        // Get player entity for countdown system
+        Player player = store.getComponent(playerRef, Player.getComponentType());
+        if (player == null) {
+            playerData.sendMessage(Message.raw("Failed to get player data!").color(RED));
+            return;
+        }
 
-        playerData.sendMessage(Message.raw("Teleported to " + town.getName() + " spawn!").color(GREEN));
+        // Use countdown teleport (same as HyTeleport)
+        plugin.startTownSpawnCountdown(
+            player, store, playerRef, world, town.getName(),
+            town.getSpawnX(), town.getSpawnY(), town.getSpawnZ(),
+            town.getSpawnYaw(), town.getSpawnPitch()
+        );
     }
 
     private void handleDeposit(PlayerRef playerData, UUID playerId, String amountStr) {

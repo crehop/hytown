@@ -109,7 +109,41 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
             this.statusMessage = "";
         }
 
-        // Handle actions
+        // Handle GUI navigation actions first
+        if ("open_plot".equals(data.action)) {
+            Town town = plugin.getTownStorage().getPlayerTown(playerId);
+            if (town == null) {
+                statusMessage = "Join a town first!";
+                statusIsError = true;
+            } else {
+                Player player = entityStore.getComponent(playerEntityRef, Player.getComponentType());
+                if (player != null) {
+                    // Schedule the new page to open after this event handler completes
+                    world.execute(() -> {
+                        PlotGui.openForDirect(plugin, player, playerEntityRef, entityStore, world);
+                    });
+                }
+                return;
+            }
+        }
+        if ("open_log".equals(data.action)) {
+            Town town = plugin.getTownStorage().getPlayerTown(playerId);
+            if (town == null || !town.isAssistant(playerId)) {
+                statusMessage = "Only assistants can view log!";
+                statusIsError = true;
+            } else {
+                Player player = entityStore.getComponent(playerEntityRef, Player.getComponentType());
+                if (player != null) {
+                    // Schedule the new page to open after this event handler completes
+                    world.execute(() -> {
+                        TownLogGui.openForDirect(plugin, player, playerEntityRef, entityStore, world);
+                    });
+                }
+                return;
+            }
+        }
+
+        // Handle other actions
         if (data.action != null) {
             handleAction(data.action, playerId, playerName, ref, store);
         }
@@ -463,19 +497,6 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
                 this.close();
             }
 
-            case "open_log" -> {
-                if (town == null || !town.isAssistant(playerId)) {
-                    statusMessage = "Only assistants can view log!";
-                    statusIsError = true;
-                    return;
-                }
-                this.close();
-                Player player = entityStore.getComponent(playerEntityRef, Player.getComponentType());
-                if (player != null) {
-                    TownLogGui.openFor(plugin, player, playerEntityRef, entityStore, world);
-                }
-            }
-
             // Member promote/demote actions
             default -> {
                 if (action.startsWith("promote_") || action.startsWith("demote_")) {
@@ -577,6 +598,7 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
             boolean isMayor = town.isMayor(playerId);
             cmd.set("#ClaimButton.Visible", isAssistant);
             cmd.set("#UnclaimButton.Visible", isAssistant);
+            cmd.set("#PlotButton.Visible", true);
             cmd.set("#InviteButton.Visible", isAssistant);
             cmd.set("#WithdrawButton.Visible", isAssistant);
             cmd.set("#SettingsButton.Visible", isMayor);
@@ -600,11 +622,13 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
                     EventData.of("Action", "create_town"), false);
         }
 
-        // Claim/Unclaim buttons
+        // Claim/Unclaim/Plot buttons
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#ClaimButton",
                 EventData.of("Action", "claim"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#UnclaimButton",
                 EventData.of("Action", "unclaim"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#PlotButton",
+                EventData.of("Action", "open_plot"), false);
 
         // Bank section
         cmd.set("#AmountField.Value", amountInput);
@@ -627,9 +651,7 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#InviteButton",
                 EventData.of("Action", "invite"), false);
 
-        // Members section - DISABLED: UI doesn't have #MembersSection elements
-        // TODO: Add Members UI elements to TownMenu.ui to re-enable this feature
-        /*
+        // Members section
         cmd.set("#MembersSection.Visible", town != null);
         if (town != null) {
             boolean isMayor = town.isMayor(playerId);
@@ -692,7 +714,6 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
                 }
             }
         }
-        */
 
         // Settings toggles - only for mayors
         if (town != null && town.isMayor(playerId)) {
@@ -728,6 +749,17 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
         world.execute(() -> {
             player.getPageManager().openCustomPage(ref, store, gui);
         });
+    }
+
+    /**
+     * Open the town GUI directly without world.execute wrapper.
+     * Used when calling from another GUI that's already handling the scheduling.
+     */
+    public static void openForDirect(HyTown plugin, Player player, Ref<EntityStore> ref,
+                               Store<EntityStore> store, World world) {
+        PlayerRef playerRef = player.getPlayerRef();
+        TownGui gui = new TownGui(playerRef, plugin, world, ref, store);
+        player.getPageManager().openCustomPage(ref, store, gui);
     }
 
     /**

@@ -36,6 +36,15 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.*;
+import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.math.vector.Vector3f;
+import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import java.awt.Color;
 
 /**
  * HyTown - A chunk-based land claiming plugin with playtime-based limits.
@@ -59,6 +68,13 @@ public class HyTown extends JavaPlugin {
     private ClaimMapOverlayProvider mapOverlayProvider;
     private ClaimTitleSystem claimTitleSystem;
     private com.hytown.managers.UpkeepManager upkeepManager;
+
+    // Teleport countdown system
+    private final ScheduledExecutorService teleportScheduler = Executors.newScheduledThreadPool(2);
+    private final Map<String, ScheduledFuture<?>> activeCountdowns = new ConcurrentHashMap<>();
+    private static final double MOVE_THRESHOLD = 0.5;
+    private static final int TELEPORT_COUNTDOWN = 5;
+    private static final Color GREEN = new Color(85, 255, 85);
 
     // Track registered worlds for map provider
     public static final Map<String, World> WORLDS = new HashMap<>();
@@ -488,5 +504,79 @@ public class HyTown extends JavaPlugin {
      */
     public com.hytown.managers.UpkeepManager getUpkeepManager() {
         return upkeepManager;
+    }
+
+    /**
+     * Start a countdown teleport to town spawn.
+     */
+    public void startTownSpawnCountdown(Player player, Store<EntityStore> store, Ref<EntityStore> playerRef,
+                                         World world, String townName, double destX, double destY, double destZ,
+                                         float destYaw, float destPitch) {
+        String playerName = player.getDisplayName();
+
+        // Cancel any existing countdown for this player
+        cancelCountdown(playerName);
+
+        // Store starting position
+        final double startX, startY, startZ;
+        try {
+            Vector3d pos = player.getTransformComponent().getPosition();
+            startX = pos.getX();
+            startY = pos.getY();
+            startZ = pos.getZ();
+        } catch (Exception e) {
+            player.sendMessage(Message.raw("Teleport failed - could not get position!"));
+            return;
+        }
+
+        final int[] remaining = {TELEPORT_COUNTDOWN};
+        final boolean[] cancelled = {false};
+
+        ScheduledFuture<?> task = teleportScheduler.scheduleAtFixedRate(() -> {
+            if (cancelled[0]) return;
+
+            try {
+                // Get current position
+                Vector3d currentPos = player.getTransformComponent().getPosition();
+                double dx = currentPos.getX() - startX;
+                double dy = currentPos.getY() - startY;
+                double dz = currentPos.getZ() - startZ;
+                double dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+                if (dist > MOVE_THRESHOLD) {
+                    cancelled[0] = true;
+                    player.sendMessage(Message.raw("TELEPORT CANCELLED - You moved!"));
+                    player.sendMessage(Message.raw("You must REMAIN PERFECTLY STILL. Try /town spawn again."));
+                    cancelCountdown(playerName);
+                    return;
+                }
+
+                if (remaining[0] > 0) {
+                    player.sendMessage(Message.raw("Teleporting to " + townName + " spawn in " + remaining[0] + "... DON'T MOVE!"));
+                    remaining[0]--;
+                } else {
+                    cancelled[0] = true;
+                    world.execute(() -> {
+                        Vector3d pos = new Vector3d(destX, destY, destZ);
+                        Vector3f rot = new Vector3f(destYaw, destPitch, 0);
+                        Teleport teleport = new Teleport(world, pos, rot);
+                        store.addComponent(playerRef, Teleport.getComponentType(), teleport);
+                    });
+                    player.sendMessage(Message.raw("Teleported to " + townName + " spawn!").color(GREEN));
+                    cancelCountdown(playerName);
+                }
+            } catch (Exception e) {
+                cancelled[0] = true;
+                try { player.sendMessage(Message.raw("Teleport failed: " + e.getMessage())); } catch (Exception ignored) {}
+                cancelCountdown(playerName);
+            }
+        }, 0, 1, TimeUnit.SECONDS);
+
+        activeCountdowns.put(playerName, task);
+    }
+
+    private void cancelCountdown(String playerName) {
+        ScheduledFuture<?> task = activeCountdowns.remove(playerName);
+        if (task != null) task.cancel(false);
     }
 }

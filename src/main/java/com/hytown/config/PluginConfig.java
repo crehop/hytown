@@ -163,6 +163,24 @@ public class PluginConfig {
         return config.wildBuildBelowAllowed;
     }
 
+    public List<String> getWildBlockDenyList() {
+        return config.wildBlockDenyList;
+    }
+
+    /**
+     * Check if an item ID matches any griefing pattern.
+     */
+    public boolean isGriefingBlock(String itemId) {
+        if (itemId == null) return false;
+        String lower = itemId.toLowerCase();
+        for (String pattern : config.wildBlockDenyList) {
+            if (lower.contains(pattern.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ===== SETTERS (auto-save) =====
 
     public void setClaimsPerHour(int value) {
@@ -321,6 +339,20 @@ public class PluginConfig {
         int wildProtectionMinY = 0;  // Y-level below which blocks are unprotected
         boolean wildDestroyBelowAllowed = true;
         boolean wildBuildBelowAllowed = false;
+
+        // Block deny list - items with IDs containing any of these strings are blocked in wilderness
+        List<String> wildBlockDenyList = createDefaultBlockDenyList();
+
+        private static List<String> createDefaultBlockDenyList() {
+            List<String> patterns = new ArrayList<>();
+            patterns.add("fluid");
+            patterns.add("fire");
+            patterns.add("tnt");
+            patterns.add("bomb");
+            patterns.add("explosive");
+            patterns.add("dynamite");
+            return patterns;
+        }
 
         // Town rank thresholds (expandable array)
         List<TownRankDefinition> townRanks = createDefaultRanks();

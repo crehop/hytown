@@ -43,11 +43,35 @@ public class UpkeepManager {
         int currentDay = now.getDayOfYear();
         int currentHour = now.getHour();
 
-        // Only collect once per day at the configured hour
+        // Only run collection logic once per day at the configured hour
         if (currentDay != lastCheckedDay && currentHour >= config.getTownUpkeepHour()) {
             lastCheckedDay = currentDay;
-            collectAllUpkeep();
+            // Check each town individually to see if they need upkeep collected
+            for (Town town : townStorage.getAllTowns()) {
+                if (shouldCollectUpkeep(town)) {
+                    collectUpkeep(town);
+                    townStorage.saveTown(town);
+                }
+            }
         }
+    }
+
+    /**
+     * Check if upkeep should be collected for this town today.
+     * Returns false if upkeep was already collected today.
+     */
+    private boolean shouldCollectUpkeep(Town town) {
+        long lastUpkeep = town.getLastUpkeepTime();
+        if (lastUpkeep <= 0) return true; // Never collected
+
+        LocalDateTime lastUpkeepDate = LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(lastUpkeep),
+                ZoneId.systemDefault());
+        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+
+        // Only collect if last upkeep was on a different day
+        return lastUpkeepDate.getDayOfYear() != now.getDayOfYear() ||
+               lastUpkeepDate.getYear() != now.getYear();
     }
 
     /**

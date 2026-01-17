@@ -39,6 +39,34 @@ $C.@DecoratedContainer {
       Anchor: (Bottom: 12);
     }
 
+    Group #StatusIndicators {
+      LayoutMode: Left;
+      Anchor: (Bottom: 12);
+
+      Label #PvPIndicator {
+        Text: "PvP";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true);
+        Anchor: (Right: 16);
+      }
+
+      Label #FireIndicator {
+        Text: "Fire";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true);
+        Anchor: (Right: 16);
+      }
+
+      Label #ExplosionIndicator {
+        Text: "Explosions";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true);
+        Anchor: (Right: 16);
+      }
+
+      Label #MobsIndicator {
+        Text: "Mobs";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true);
+      }
+    }
+
     Group {
       Anchor: (Vertical: 4, Height: 1);
       Background: #5e512c;
@@ -152,7 +180,6 @@ $C.@DecoratedContainer {
       Group #AllowedList {
         LayoutMode: Top;
         Anchor: (Height: 160);
-        Overflow: Scroll;
 
         Group #Allowed1 { LayoutMode: Left; Anchor: (Bottom: 4);
           Label #Allowed1Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 250); }
@@ -196,6 +223,10 @@ $C.@DecoratedContainer {
 
     Group {
       LayoutMode: Left;
+
+      $C.@TextButton #TownButton {
+        Text: "Town";
+      }
 
       Label {
         FlexWeight: 1;

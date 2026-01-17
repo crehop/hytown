@@ -33,6 +33,7 @@ public class ResidentCommand extends AbstractPlayerCommand {
         super("resident", "View resident information");
         addAliases("res");
         setAllowsExtraArguments(true);
+        requirePermission("hytown.use");
         this.plugin = plugin;
     }
 

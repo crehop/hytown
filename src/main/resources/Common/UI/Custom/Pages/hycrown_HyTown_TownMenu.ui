@@ -3,7 +3,7 @@ $C = "../Common.ui";
 $C.@PageOverlay {}
 
 $C.@DecoratedContainer {
-  Anchor: (Width: 650, Height: 750);
+  Anchor: (Width: 650, Height: 900);
 
   #Title {
     $C.@Title {
@@ -68,6 +68,11 @@ $C.@DecoratedContainer {
 
         $C.@TextButton #UnclaimButton {
           Text: "Unclaim";
+          Anchor: (Left: 8);
+        }
+
+        $C.@TextButton #PlotButton {
+          Text: "Plot";
           Anchor: (Left: 8);
         }
       }
@@ -193,6 +198,71 @@ $C.@DecoratedContainer {
 
       $C.@CheckBoxWithLabel #FireToggle {
         @Text = "Fire Spread Enabled";
+      }
+    }
+
+    Group {
+      Anchor: (Vertical: 8, Height: 1);
+      Background: #5e512c;
+    }
+
+    Group #MembersSection {
+      LayoutMode: Top;
+      Anchor: (Bottom: 12);
+
+      Label {
+        Text: "Members";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true, RenderUppercase: true);
+        Anchor: (Bottom: 8);
+      }
+
+      Group #Member1 { LayoutMode: Left; Anchor: (Bottom: 4);
+        Label #Member1Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 150); }
+        Label #Member1Rank { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 100); }
+        $C.@TextButton #Member1Promote { Text: "+"; Anchor: (Left: 4); }
+        $C.@TextButton #Member1Demote { Text: "-"; Anchor: (Left: 4); }
+      }
+      Group #Member2 { LayoutMode: Left; Anchor: (Bottom: 4);
+        Label #Member2Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 150); }
+        Label #Member2Rank { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 100); }
+        $C.@TextButton #Member2Promote { Text: "+"; Anchor: (Left: 4); }
+        $C.@TextButton #Member2Demote { Text: "-"; Anchor: (Left: 4); }
+      }
+      Group #Member3 { LayoutMode: Left; Anchor: (Bottom: 4);
+        Label #Member3Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 150); }
+        Label #Member3Rank { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 100); }
+        $C.@TextButton #Member3Promote { Text: "+"; Anchor: (Left: 4); }
+        $C.@TextButton #Member3Demote { Text: "-"; Anchor: (Left: 4); }
+      }
+      Group #Member4 { LayoutMode: Left; Anchor: (Bottom: 4);
+        Label #Member4Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 150); }
+        Label #Member4Rank { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 100); }
+        $C.@TextButton #Member4Promote { Text: "+"; Anchor: (Left: 4); }
+        $C.@TextButton #Member4Demote { Text: "-"; Anchor: (Left: 4); }
+      }
+      Group #Member5 { LayoutMode: Left; Anchor: (Bottom: 4);
+        Label #Member5Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 150); }
+        Label #Member5Rank { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 100); }
+        $C.@TextButton #Member5Promote { Text: "+"; Anchor: (Left: 4); }
+        $C.@TextButton #Member5Demote { Text: "-"; Anchor: (Left: 4); }
+      }
+      Group #Member6 { LayoutMode: Left; Anchor: (Bottom: 4);
+        Label #Member6Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 150); }
+        Label #Member6Rank { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 100); }
+        $C.@TextButton #Member6Promote { Text: "+"; Anchor: (Left: 4); }
+        $C.@TextButton #Member6Demote { Text: "-"; Anchor: (Left: 4); }
+      }
+      Group #Member7 { LayoutMode: Left; Anchor: (Bottom: 4);
+        Label #Member7Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 150); }
+        Label #Member7Rank { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 100); }
+        $C.@TextButton #Member7Promote { Text: "+"; Anchor: (Left: 4); }
+        $C.@TextButton #Member7Demote { Text: "-"; Anchor: (Left: 4); }
+      }
+      Group #Member8 { LayoutMode: Left; Anchor: (Bottom: 4);
+        Label #Member8Name { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 150); }
+        Label #Member8Rank { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Width: 100); }
+        $C.@TextButton #Member8Promote { Text: "+"; Anchor: (Left: 4); }
+        $C.@TextButton #Member8Demote { Text: "-"; Anchor: (Left: 4); }
       }
     }
 

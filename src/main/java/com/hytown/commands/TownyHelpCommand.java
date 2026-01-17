@@ -33,6 +33,7 @@ public class TownyHelpCommand extends AbstractPlayerCommand {
     public TownyHelpCommand(HyTown plugin) {
         super("townyhelp", "Display Towny help menu");
         addAliases("th", "thelp", "hytown");
+        requirePermission("hytown.use");
         this.plugin = plugin;
     }
 

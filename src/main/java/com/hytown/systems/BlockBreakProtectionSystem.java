@@ -149,7 +149,7 @@ public class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, B
                     // Above threshold - PROTECTED
                     event.setCancelled(true);
                     if (canSendMessage(playerId)) {
-                        player.sendMessage(Message.raw("Wild protection: Cannot break blocks above Y=" + minY).color(RED));
+                        player.sendMessage(Message.raw("Wilderness Protection: Go below Y=" + minY + " to break (Current Y: " + blockY + ")").color(RED));
                     }
                 } else {
                     // Below threshold - check if destroy below is allowed

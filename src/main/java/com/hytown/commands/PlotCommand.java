@@ -39,6 +39,7 @@ public class PlotCommand extends AbstractPlayerCommand {
         super("plot", "Manage individual plots within towns");
         addAliases("p");
         setAllowsExtraArguments(true);
+        requirePermission("hytown.use");
         this.plugin = plugin;
     }
 

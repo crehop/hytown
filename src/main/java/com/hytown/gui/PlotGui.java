@@ -41,6 +41,7 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
     private final Town town;
 
     private String playerNameInput = "";
+    private String ownerNameInput = "";
     private String statusMessage = "";
     private boolean statusIsError = false;
     private List<UUID> displayedAllowedIds = new ArrayList<>();
@@ -80,10 +81,26 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
             return;
         }
 
+        // Handle town button - go back to town menu
+        if ("open_town".equals(data.action)) {
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player != null) {
+                // Schedule the new page to open after this event handler completes
+                world.execute(() -> {
+                    TownGui.openForDirect(plugin, player, playerEntityRef, entityStore, world);
+                });
+            }
+            return;
+        }
+
         // Handle text input changes
         boolean textOnly = false;
         if (data.playerName != null) {
             this.playerNameInput = data.playerName;
+            textOnly = true;
+        }
+        if (data.ownerName != null) {
+            this.ownerNameInput = data.ownerName;
             textOnly = true;
         }
 
@@ -202,7 +219,7 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
                     return;
                 }
 
-                if (playerNameInput.isEmpty()) {
+                if (ownerNameInput.isEmpty()) {
                     // Clear owner
                     town.setPlotOwner(claimKey, null);
                     townStorage.saveTown(town);
@@ -215,7 +232,7 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
                 UUID targetId = null;
                 String targetName = null;
                 for (Map.Entry<UUID, String> entry : town.getResidentNames().entrySet()) {
-                    if (entry.getValue().equalsIgnoreCase(playerNameInput)) {
+                    if (entry.getValue().equalsIgnoreCase(ownerNameInput)) {
                         targetId = entry.getKey();
                         targetName = entry.getValue();
                         break;
@@ -232,7 +249,7 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
                 townStorage.saveTown(town);
                 statusMessage = "Plot owner set to " + targetName + "!";
                 statusIsError = false;
-                playerNameInput = "";
+                ownerNameInput = "";
             }
 
             default -> {
@@ -257,6 +274,19 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
     private String formatOverrideValue(Boolean value) {
         if (value == null) return "Use Town Default";
         return value ? "ON" : "OFF";
+    }
+
+    /**
+     * Get color for status indicator.
+     * Grey (#888888) = using town default
+     * Green (#55ff55) = ON
+     * Red (#ff5555) = OFF
+     */
+    private String getIndicatorColor(Boolean override, boolean effectiveValue) {
+        if (override == null) {
+            return "#888888"; // Grey for town default
+        }
+        return effectiveValue ? "#55ff55" : "#ff5555"; // Green for ON, Red for OFF
     }
 
     @Override
@@ -290,6 +320,29 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
         String ownerName = plotOwner != null ? town.getResidentName(plotOwner) : "None";
         cmd.set("#PlotOwner.Text", "Owner: " + ownerName);
 
+        // Status indicators - show current effective state with colors
+        var townSettings = town.getSettings();
+        Boolean pvpOverride = plotSettings.getPvpEnabled();
+        Boolean fireOverride = plotSettings.getFireSpreadEnabled();
+        Boolean explosionOverride = plotSettings.getExplosionsEnabled();
+        Boolean mobsOverride = plotSettings.getMobSpawningEnabled();
+
+        // PvP indicator
+        boolean pvpEffective = pvpOverride != null ? pvpOverride : townSettings.isPvpEnabled();
+        cmd.set("#PvPIndicator.Style.TextColor", getIndicatorColor(pvpOverride, pvpEffective));
+
+        // Fire indicator
+        boolean fireEffective = fireOverride != null ? fireOverride : townSettings.isFireSpreadEnabled();
+        cmd.set("#FireIndicator.Style.TextColor", getIndicatorColor(fireOverride, fireEffective));
+
+        // Explosion indicator
+        boolean explosionEffective = explosionOverride != null ? explosionOverride : townSettings.isExplosionsEnabled();
+        cmd.set("#ExplosionIndicator.Style.TextColor", getIndicatorColor(explosionOverride, explosionEffective));
+
+        // Mobs indicator
+        boolean mobsEffective = mobsOverride != null ? mobsOverride : townSettings.isMobSpawningEnabled();
+        cmd.set("#MobsIndicator.Style.TextColor", getIndicatorColor(mobsOverride, mobsEffective));
+
         // Check if player can manage this plot
         boolean canManage = town.isMayor(playerId) ||
                             town.getAssistants().contains(playerId) ||
@@ -299,9 +352,9 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
         boolean canSetOwner = town.isAssistant(playerId);
         cmd.set("#SetOwnerSection.Visible", canSetOwner);
         if (canSetOwner) {
-            cmd.set("#OwnerNameField.Value", playerNameInput);
+            cmd.set("#OwnerNameField.Value", ownerNameInput);
             evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#OwnerNameField",
-                    EventData.of("@PlayerName", "#OwnerNameField.Value"), false);
+                    EventData.of("@OwnerName", "#OwnerNameField.Value"), false);
             evt.addEventBinding(CustomUIEventBindingType.Activating, "#SetOwnerButton",
                     EventData.of("Action", "set_owner"), false);
         }
@@ -314,32 +367,25 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
             evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ProtectionToggle #CheckBox",
                     EventData.of("Action", "toggle_protection"), false);
 
-            // Override toggles - show current state with labels
-            var townSettings = town.getSettings();
-
-            // PvP
-            Boolean pvpOverride = plotSettings.getPvpEnabled();
+            // PvP toggle button
             cmd.set("#PvPToggle.Text", "PvP: " + formatOverrideValue(pvpOverride) +
                     (pvpOverride == null ? " (Town: " + (townSettings.isPvpEnabled() ? "ON" : "OFF") + ")" : ""));
             evt.addEventBinding(CustomUIEventBindingType.Activating, "#PvPToggle",
                     EventData.of("Action", "toggle_pvp"), false);
 
-            // Explosions
-            Boolean explosionOverride = plotSettings.getExplosionsEnabled();
+            // Explosions toggle button
             cmd.set("#ExplosionToggle.Text", "Explosions: " + formatOverrideValue(explosionOverride) +
                     (explosionOverride == null ? " (Town: " + (townSettings.isExplosionsEnabled() ? "ON" : "OFF") + ")" : ""));
             evt.addEventBinding(CustomUIEventBindingType.Activating, "#ExplosionToggle",
                     EventData.of("Action", "toggle_explosion"), false);
 
-            // Fire Spread
-            Boolean fireOverride = plotSettings.getFireSpreadEnabled();
+            // Fire Spread toggle button
             cmd.set("#FireToggle.Text", "Fire Spread: " + formatOverrideValue(fireOverride) +
                     (fireOverride == null ? " (Town: " + (townSettings.isFireSpreadEnabled() ? "ON" : "OFF") + ")" : ""));
             evt.addEventBinding(CustomUIEventBindingType.Activating, "#FireToggle",
                     EventData.of("Action", "toggle_fire"), false);
 
-            // Mob Spawning
-            Boolean mobsOverride = plotSettings.getMobSpawningEnabled();
+            // Mob Spawning toggle button
             cmd.set("#MobsToggle.Text", "Mob Spawning: " + formatOverrideValue(mobsOverride) +
                     (mobsOverride == null ? " (Town: " + (townSettings.isMobSpawningEnabled() ? "ON" : "OFF") + ")" : ""));
             evt.addEventBinding(CustomUIEventBindingType.Activating, "#MobsToggle",
@@ -380,6 +426,10 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
                 }
             }
         }
+
+        // Town button - go back to town menu
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#TownButton",
+                EventData.of("Action", "open_town"), false);
 
         // Close button
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#CloseButton",
@@ -429,27 +479,78 @@ public class PlotGui extends InteractiveCustomUIPage<PlotGui.PlotData> {
     }
 
     /**
+     * Open the plot GUI directly without world.execute wrapper.
+     * Used when calling from another GUI that's already handling the scheduling.
+     */
+    public static void openForDirect(HyTown plugin, Player player, Ref<EntityStore> ref,
+                               Store<EntityStore> store, World world) {
+        PlayerRef playerRef = player.getPlayerRef();
+        UUID playerId = playerRef.getUuid();
+
+        // Get player's current chunk
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        Vector3d pos = transform.getPosition();
+        String worldName = world.getName();
+        int chunkX = ChunkUtil.toChunkX(pos.getX());
+        int chunkZ = ChunkUtil.toChunkZ(pos.getZ());
+        String claimKey = worldName + ":" + chunkX + "," + chunkZ;
+
+        // Check if this chunk is owned by a town
+        TownStorage townStorage = plugin.getTownStorage();
+        Town town = townStorage.getTownByClaimKey(claimKey);
+
+        if (town == null) {
+            playerRef.sendMessage(Message.raw("This chunk is not claimed by a town!").color(RED));
+            return;
+        }
+
+        // Check if player can access this plot's settings
+        UUID plotOwner = town.getPlotOwner(claimKey);
+        boolean canAccess = town.isMayor(playerId) ||
+                           town.getAssistants().contains(playerId) ||
+                           (plotOwner != null && plotOwner.equals(playerId));
+
+        if (!canAccess) {
+            playerRef.sendMessage(Message.raw("You don't have permission to manage this plot!").color(RED));
+            return;
+        }
+
+        PlotGui gui = new PlotGui(playerRef, plugin, world, ref, store, claimKey, town);
+        player.getPageManager().openCustomPage(ref, store, gui);
+    }
+
+    /**
      * Data class for handling GUI events.
      */
     public static class PlotData {
         static final String KEY_PLAYER_NAME = "@PlayerName";
+        static final String KEY_OWNER_NAME = "@OwnerName";
         static final String KEY_CLOSE = "Close";
+        static final String KEY_OPEN_TOWN = "OpenTown";
         static final String KEY_ACTION = "Action";
 
         public static final BuilderCodec<PlotData> CODEC = BuilderCodec.<PlotData>builder(PlotData.class, PlotData::new)
                 .addField(new KeyedCodec<>(KEY_PLAYER_NAME, Codec.STRING),
                         (data, s) -> data.playerName = s,
                         data -> data.playerName)
+                .addField(new KeyedCodec<>(KEY_OWNER_NAME, Codec.STRING),
+                        (data, s) -> data.ownerName = s,
+                        data -> data.ownerName)
                 .addField(new KeyedCodec<>(KEY_CLOSE, Codec.STRING),
                         (data, s) -> data.close = s,
                         data -> data.close)
+                .addField(new KeyedCodec<>(KEY_OPEN_TOWN, Codec.STRING),
+                        (data, s) -> data.openTown = s,
+                        data -> data.openTown)
                 .addField(new KeyedCodec<>(KEY_ACTION, Codec.STRING),
                         (data, s) -> data.action = s,
                         data -> data.action)
                 .build();
 
         private String playerName;
+        private String ownerName;
         private String close;
+        private String openTown;
         private String action;
     }
 

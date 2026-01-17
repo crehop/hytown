@@ -65,18 +65,20 @@ public class TownLogGui extends InteractiveCustomUIPage<TownLogGui.LogData> {
             return;
         }
 
-        // Handle back button - go back to town menu
-        if (data.back != null) {
-            this.close();
+        // Handle town button - go back to town menu
+        if ("open_town".equals(data.action)) {
             Player player = store.getComponent(ref, Player.getComponentType());
             if (player != null) {
-                TownGui.openFor(plugin, player, playerEntityRef, entityStore, world);
+                // Schedule the new page to open after this event handler completes
+                world.execute(() -> {
+                    TownGui.openForDirect(plugin, player, playerEntityRef, entityStore, world);
+                });
             }
             return;
         }
 
         // Handle pagination
-        if (data.action != null) {
+        if ("prev".equals(data.action) || "next".equals(data.action)) {
             UUID playerId = playerRef.getUuid();
             TownStorage townStorage = plugin.getTownStorage();
             Town town = townStorage.getPlayerTown(playerId);
@@ -85,9 +87,10 @@ public class TownLogGui extends InteractiveCustomUIPage<TownLogGui.LogData> {
                 List<TownTransaction> transactions = town.getTransactionHistory();
                 int totalPages = Math.max(1, (int) Math.ceil(transactions.size() / (double) ENTRIES_PER_PAGE));
 
-                switch (data.action) {
-                    case "prev" -> currentPage = Math.max(1, currentPage - 1);
-                    case "next" -> currentPage = Math.min(totalPages, currentPage + 1);
+                if ("prev".equals(data.action)) {
+                    currentPage = Math.max(1, currentPage - 1);
+                } else {
+                    currentPage = Math.min(totalPages, currentPage + 1);
                 }
             }
         }
@@ -169,8 +172,8 @@ public class TownLogGui extends InteractiveCustomUIPage<TownLogGui.LogData> {
                 EventData.of("Action", "prev"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#NextButton",
                 EventData.of("Action", "next"), false);
-        evt.addEventBinding(CustomUIEventBindingType.Activating, "#BackButton",
-                EventData.of("Back", "true"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#TownButton",
+                EventData.of("Action", "open_town"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#CloseButton",
                 EventData.of("Close", "true"), false);
     }
@@ -190,20 +193,33 @@ public class TownLogGui extends InteractiveCustomUIPage<TownLogGui.LogData> {
     }
 
     /**
+     * Open the log GUI directly without world.execute wrapper.
+     * Used when calling from another GUI that's already handling the scheduling.
+     */
+    public static void openForDirect(HyTown plugin, Player player, Ref<EntityStore> playerRef,
+                                Store<EntityStore> store, World world) {
+        var playerData = store.getComponent(playerRef, PlayerRef.getComponentType());
+        if (playerData != null) {
+            TownLogGui gui = new TownLogGui(playerData, plugin, world, playerRef, store);
+            player.getPageManager().openCustomPage(playerRef, store, gui);
+        }
+    }
+
+    /**
      * Data class for receiving UI events.
      */
     public static class LogData {
         public String close;
-        public String back;
+        public String openTown;
         public String action;
 
         public static final BuilderCodec<LogData> CODEC = BuilderCodec.<LogData>builder(LogData.class, LogData::new)
                 .addField(new KeyedCodec<>("Close", Codec.STRING),
                         (data, s) -> data.close = s,
                         data -> data.close)
-                .addField(new KeyedCodec<>("Back", Codec.STRING),
-                        (data, s) -> data.back = s,
-                        data -> data.back)
+                .addField(new KeyedCodec<>("OpenTown", Codec.STRING),
+                        (data, s) -> data.openTown = s,
+                        data -> data.openTown)
                 .addField(new KeyedCodec<>("Action", Codec.STRING),
                         (data, s) -> data.action = s,
                         data -> data.action)

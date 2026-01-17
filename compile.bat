@@ -18,7 +18,7 @@ xcopy /E /Y /I "src\main\resources\*" "target\classes\" >nul 2>&1
 
 echo Creating JAR...
 cd "target\classes"
-jar -cvf "..\HyTown-1.0.0.jar" .
+jar -cvf "..\HyTown-1.0.1.jar" .
 
 echo Done!
 cd /d "%PROJECT%"

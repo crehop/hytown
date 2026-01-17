@@ -144,15 +144,22 @@ public class BlockPlaceProtectionSystem extends EntityEventSystem<EntityStore, P
 
                 int blockY = targetBlock.getY();
                 int minY = config.getWildProtectionMinY();
+                String itemId = event.getItemInHand() != null ? event.getItemInHand().getItemId() : null;
+
+                // Always block griefing blocks (fluids, fire, bombs, etc.) in wilderness
+                if (config.isGriefingBlock(itemId)) {
+                    event.setCancelled(true);
+                    if (canSendMessage(playerId)) {
+                        player.sendMessage(Message.raw("Wilderness Protection: Cannot place griefing blocks").color(RED));
+                    }
+                    return;
+                }
 
                 if (blockY > minY) {
-                    // Above threshold - check if building is allowed
-                    if (!config.isWildBuildBelowAllowed()) {
-                        // Wild building is disabled above threshold
-                        event.setCancelled(true);
-                        if (canSendMessage(playerId)) {
-                            player.sendMessage(Message.raw("Wild protection: Cannot place blocks above Y=" + minY).color(RED));
-                        }
+                    // Above threshold - protected
+                    event.setCancelled(true);
+                    if (canSendMessage(playerId)) {
+                        player.sendMessage(Message.raw("Wilderness Protection: Go below Y=" + minY + " to build (Current Y: " + blockY + ")").color(RED));
                     }
                 } else {
                     // Below threshold - check if building below is allowed

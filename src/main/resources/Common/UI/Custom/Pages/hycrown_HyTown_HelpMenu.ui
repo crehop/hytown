@@ -29,7 +29,6 @@ $C.@DecoratedContainer {
     Group #CommandList {
       LayoutMode: Top;
       Anchor: (Bottom: 8, Height: 420);
-      Overflow: Scroll;
 
       Group { LayoutMode: Left; Anchor: (Bottom: 6);
         Label #Cmd1 { Text: ""; Style: (...$C.@DefaultLabelStyle, TextColor: #55ff55); Anchor: (Width: 280); }

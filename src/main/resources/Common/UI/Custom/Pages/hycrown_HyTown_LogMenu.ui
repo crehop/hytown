@@ -35,7 +35,6 @@ $C.@DecoratedContainer {
     Group #LogEntries {
       LayoutMode: Top;
       Anchor: (Bottom: 8, Height: 400);
-      Overflow: Scroll;
 
       Label #Entry1 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
       Label #Entry2 { Text: ""; Style: $C.@DefaultLabelStyle; Anchor: (Bottom: 4); }
@@ -83,8 +82,8 @@ $C.@DecoratedContainer {
     Group {
       LayoutMode: Left;
 
-      $C.@TextButton #BackButton {
-        Text: "Back";
+      $C.@TextButton #TownButton {
+        Text: "Town";
       }
 
       Label {
