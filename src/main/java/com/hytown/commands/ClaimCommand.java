@@ -63,7 +63,7 @@ public class ClaimCommand extends AbstractPlayerCommand {
     private static final Color YELLOW = new Color(255, 255, 85);
 
     public ClaimCommand(HyTown plugin) {
-        super("claim", "Land claiming commands");
+        super("claim", "Personal land claiming - protect your builds, trust players, manage permissions. Use /claim help for subcommands");
         this.plugin = plugin;
         setAllowsExtraArguments(true);  // Allow any number of arguments
         requirePermission("hytown.use");

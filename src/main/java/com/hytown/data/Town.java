@@ -57,10 +57,41 @@ public class Town {
     // For JSON deserialization
     public Town() {}
 
+    /**
+     * Validates and fixes any data inconsistencies after loading from JSON.
+     * - Ensures mayor is in residents set
+     * - Ensures all assistants are in residents set
+     */
+    public void validateAfterLoad() {
+        // Ensure mayor is in residents
+        if (mayorId != null && !residents.contains(mayorId)) {
+            residents.add(mayorId);
+            if (mayorName != null) {
+                residentNames.put(mayorId, mayorName);
+            }
+        }
+
+        // Ensure all assistants are in residents
+        for (UUID assistantId : assistants) {
+            if (!residents.contains(assistantId)) {
+                residents.add(assistantId);
+            }
+        }
+
+        // Initialize settings if null
+        if (settings == null) {
+            settings = new TownSettings();
+        }
+    }
+
     // ==================== MEMBERSHIP ====================
 
+    /**
+     * Check if a player is a member of this town (mayor, assistant, or resident).
+     */
     public boolean isMember(UUID playerId) {
-        return residents.contains(playerId);
+        // Explicitly check mayor, assistants, and residents
+        return playerId.equals(mayorId) || assistants.contains(playerId) || residents.contains(playerId);
     }
 
     public boolean isMayor(UUID playerId) {
@@ -134,6 +165,62 @@ public class Town {
     }
 
     /**
+     * Get the origin claim key (the claim with lowest X, then lowest Z).
+     * Used for fallback spawn location and display purposes.
+     * @return The origin claim key, or null if no claims
+     */
+    public String getFirstClaimKey() {
+        if (claimKeys.isEmpty()) return null;
+
+        // Find the claim with the lowest coordinates for consistency
+        // This ensures existing towns have a predictable "origin"
+        String originClaim = null;
+        int lowestX = Integer.MAX_VALUE;
+        int lowestZ = Integer.MAX_VALUE;
+
+        for (String claimKey : claimKeys) {
+            int[] coords = parseClaimCoords(claimKey);
+            if (coords != null) {
+                // Compare by X first, then Z
+                if (coords[0] < lowestX || (coords[0] == lowestX && coords[1] < lowestZ)) {
+                    lowestX = coords[0];
+                    lowestZ = coords[1];
+                    originClaim = claimKey;
+                }
+            }
+        }
+
+        return originClaim != null ? originClaim : claimKeys.iterator().next();
+    }
+
+    /**
+     * Parse a claim key into world, chunkX, chunkZ.
+     * @return int[]{chunkX, chunkZ} or null if invalid format
+     */
+    public static int[] parseClaimCoords(String claimKey) {
+        if (claimKey == null) return null;
+        String[] parts = claimKey.split(":");
+        if (parts.length != 2) return null;
+        String[] coords = parts[1].split(",");
+        if (coords.length != 2) return null;
+        try {
+            return new int[]{Integer.parseInt(coords[0]), Integer.parseInt(coords[1])};
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Parse the world name from a claim key.
+     */
+    public static String parseClaimWorld(String claimKey) {
+        if (claimKey == null) return null;
+        int colonIndex = claimKey.indexOf(':');
+        if (colonIndex == -1) return null;
+        return claimKey.substring(0, colonIndex);
+    }
+
+    /**
      * Checks if a chunk is face-adjacent (N/S/E/W) to any existing town claim.
      * Diagonal adjacency is NOT allowed.
      * @param worldName The world name
@@ -204,6 +291,13 @@ public class Town {
      */
     public PlotSettings getPlotSettings(String claimKey) {
         return plotSettings.get(claimKey);
+    }
+
+    /**
+     * Clear PlotSettings for a plot (reset to town defaults).
+     */
+    public void clearPlotSettings(String claimKey) {
+        plotSettings.remove(claimKey);
     }
 
     /**

@@ -97,6 +97,7 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
         BlockType blockType = event.getBlockType();
         TrustLevel requiredLevel = getRequiredTrustLevel(blockType);
         boolean isContainer = requiredLevel == TrustLevel.CONTAINER;
+        boolean isCrop = claimManager.getBlockGroups().isCropBlock(blockType);
 
         // First check if this is a town claim
         int chunkX = ChunkUtil.toChunkX(targetBlock.getX());
@@ -106,7 +107,21 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
         Town town = townStorage.getTownByClaimKey(claimKey);
         if (town != null) {
             // This is a town claim - use town permissions
-            if (isContainer) {
+            if (isCrop) {
+                // Crop interaction (harvesting) requires being a town member
+                if (!town.isMember(playerId)) {
+                    // Check if outsiders can destroy (harvesting is similar to destroying)
+                    if (!town.getSettings().canOutsiderDestroy()) {
+                        event.setCancelled(true);
+                        if (canSendMessage(playerId)) {
+                            player.sendMessage(Messages.cannotHarvestCrops());
+                        }
+                        return;
+                    }
+                }
+                // Member or outsider destroy allowed - allow harvest
+                return;
+            } else if (isContainer) {
                 // Container access uses the plot-level permission system
                 if (!town.canAccessContainers(claimKey, playerId)) {
                     event.setCancelled(true);
@@ -116,13 +131,15 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
                     return;
                 }
             } else {
-                // For non-container use (doors, buttons, etc.), check if town member
+                // For non-container use (doors, buttons, etc.), check if town member or outsider switch
                 if (!town.isMember(playerId)) {
-                    event.setCancelled(true);
-                    if (canSendMessage(playerId)) {
-                        player.sendMessage(Messages.cannotUseBlock(requiredLevel));
+                    if (!town.getSettings().canOutsiderSwitch()) {
+                        event.setCancelled(true);
+                        if (canSendMessage(playerId)) {
+                            player.sendMessage(Messages.cannotUseBlock(requiredLevel));
+                        }
+                        return;
                     }
-                    return;
                 }
             }
             // Town member has permission - allow

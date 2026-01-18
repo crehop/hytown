@@ -31,8 +31,8 @@ public class TownyHelpCommand extends AbstractPlayerCommand {
     private static final Color GRAY = new Color(170, 170, 170);
 
     public TownyHelpCommand(HyTown plugin) {
-        super("townyhelp", "Display Towny help menu");
-        addAliases("th", "thelp", "hytown");
+        super("townhelp", "Opens the complete HyTown help menu with all commands, usage info, and descriptions. Aliases: /th, /thelp");
+        addAliases("th", "thelp", "townyhelp", "hytown");
         requirePermission("hytown.use");
         this.plugin = plugin;
     }
@@ -82,7 +82,7 @@ public class TownyHelpCommand extends AbstractPlayerCommand {
         playerData.sendMessage(Message.raw("").color(WHITE));
 
         playerData.sendMessage(Message.raw("--- Admin ---").color(GREEN));
-        playerData.sendMessage(Message.raw("/townyadmin - Admin commands").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin - Admin commands").color(WHITE));
         playerData.sendMessage(Message.raw("").color(WHITE));
 
         playerData.sendMessage(Message.raw("Type each command for more options!").color(GRAY));

@@ -47,6 +47,7 @@ public class ClaimProtectionListener {
 
     /**
      * Handle player interactions - check claim protection.
+     * Primary interactions (attacks) are allowed in wilderness but blocked in towns with PVP off.
      */
     private void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
@@ -59,6 +60,33 @@ public class ClaimProtectionListener {
         InteractionType actionType = event.getActionType();
         String worldName = player.getWorld().getName();
 
+        // For Primary interactions (attacks), only block if in a town/plot with PVP disabled
+        if (actionType == InteractionType.Primary) {
+            // Check if this is in a claimed town
+            int chunkX = targetBlock.getX() >> 4;
+            int chunkZ = targetBlock.getZ() >> 4;
+            String claimKey = worldName + ":" + chunkX + "," + chunkZ;
+            var town = plugin.getTownStorage().getTownByClaimKey(claimKey);
+
+            if (town != null) {
+                // Check plot settings first, then fall back to town settings
+                var plotSettings = town.getPlotSettings(claimKey);
+                boolean pvpEnabled;
+                if (plotSettings != null) {
+                    pvpEnabled = plotSettings.getEffectivePvp(town.getSettings());
+                } else {
+                    pvpEnabled = town.getSettings().isPvpEnabled();
+                }
+
+                if (!pvpEnabled) {
+                    // PVP is disabled - block the attack
+                    event.setCancelled(true);
+                }
+            }
+            // In wilderness or town/plot with PVP on - allow the attack
+            return;
+        }
+
         // Track interaction for ECS event correlation
         String blockKey = getBlockKey(targetBlock);
         PlayerInteraction interaction = new PlayerInteraction(playerId, worldName, targetBlock, System.currentTimeMillis());
@@ -67,7 +95,7 @@ public class ClaimProtectionListener {
 
         cleanupOldInteractions();
 
-        // Check if this location is protected
+        // Check if this location is protected (for non-attack interactions)
         boolean canInteract = claimManager.canInteract(playerId, worldName, targetBlock.getX(), targetBlock.getZ());
 
         if (!canInteract) {

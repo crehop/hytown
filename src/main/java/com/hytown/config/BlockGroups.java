@@ -22,11 +22,13 @@ public class BlockGroups {
     private Set<String> useBlocks;         // Blocks that need USE trust level
     private Set<String> containerBlocks;   // Blocks that need CONTAINER trust level
     private Set<String> workstationBlocks; // Blocks that need WORKSTATION trust level
+    private Set<String> cropBlocks;        // Crop/farmable blocks that need BUILD trust level
 
     // Patterns to match (if block ID contains any of these)
     private Set<String> usePatterns;
     private Set<String> containerPatterns;
     private Set<String> workstationPatterns;
+    private Set<String> cropPatterns;      // Patterns for crop blocks
 
     public BlockGroups(Path dataDirectory) {
         this.configFile = dataDirectory.resolve("block_groups.json");
@@ -208,6 +210,48 @@ public class BlockGroups {
         workstationPatterns.add("brewing");     // Brewing stands
         workstationPatterns.add("enchant");     // Enchanting tables
         workstationPatterns.add("_bench");      // Generic bench suffix
+
+        // ===== CROP LEVEL BLOCKS (farmable/harvestable) =====
+        // These require BUILD trust level to interact with
+
+        cropBlocks = new HashSet<>();
+        // Add specific crop blocks if needed
+        cropBlocks.add("Wheat");
+        cropBlocks.add("Carrot");
+        cropBlocks.add("Potato");
+        cropBlocks.add("Beetroot");
+        cropBlocks.add("Corn");
+        cropBlocks.add("Tomato");
+        cropBlocks.add("Pumpkin");
+        cropBlocks.add("Melon");
+        cropBlocks.add("Cotton");
+        cropBlocks.add("Flax");
+        cropBlocks.add("Rice");
+        cropBlocks.add("Sugarcane");
+        cropBlocks.add("Bamboo");
+
+        // Patterns for CROP level - matches if block ID contains any of these
+        cropPatterns = new HashSet<>();
+        cropPatterns.add("crop");       // Crop_ prefixed blocks
+        cropPatterns.add("wheat");      // Wheat variants
+        cropPatterns.add("carrot");     // Carrot variants
+        cropPatterns.add("potato");     // Potato variants
+        cropPatterns.add("beetroot");   // Beetroot variants
+        cropPatterns.add("corn");       // Corn variants
+        cropPatterns.add("tomato");     // Tomato variants
+        cropPatterns.add("pumpkin");    // Pumpkin variants
+        cropPatterns.add("melon");      // Melon variants
+        cropPatterns.add("cotton");     // Cotton variants
+        cropPatterns.add("flax");       // Flax variants
+        cropPatterns.add("rice");       // Rice variants
+        cropPatterns.add("sugarcane");  // Sugarcane variants
+        cropPatterns.add("bamboo");     // Bamboo variants
+        cropPatterns.add("berry");      // Berry bushes
+        cropPatterns.add("vegetable");  // Vegetable blocks
+        cropPatterns.add("fruit");      // Fruit blocks
+        cropPatterns.add("plant_");     // Plant prefixed blocks
+        cropPatterns.add("farmland");   // Farmland (tilled soil)
+        cropPatterns.add("farm_");      // Farm prefixed blocks
     }
 
     private void load() {
@@ -222,6 +266,8 @@ public class BlockGroups {
                     if (data.containerPatterns != null) containerPatterns = new HashSet<>(data.containerPatterns);
                     if (data.workstationBlocks != null) workstationBlocks = new HashSet<>(data.workstationBlocks);
                     if (data.workstationPatterns != null) workstationPatterns = new HashSet<>(data.workstationPatterns);
+                    if (data.cropBlocks != null) cropBlocks = new HashSet<>(data.cropBlocks);
+                    if (data.cropPatterns != null) cropPatterns = new HashSet<>(data.cropPatterns);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -239,6 +285,8 @@ public class BlockGroups {
         data.containerPatterns = containerPatterns;
         data.workstationBlocks = workstationBlocks;
         data.workstationPatterns = workstationPatterns;
+        data.cropBlocks = cropBlocks;
+        data.cropPatterns = cropPatterns;
 
         try {
             Files.createDirectories(configFile.getParent());
@@ -330,6 +378,32 @@ public class BlockGroups {
     }
 
     /**
+     * Check if a block is a crop (requires BUILD trust level to interact/harvest).
+     */
+    public boolean isCropBlock(BlockType blockType) {
+        if (blockType == null) return false;
+
+        String id = blockType.getId();
+        if (id == null) return false;
+
+        String lowerID = id.toLowerCase();
+
+        // Check exact matches
+        if (cropBlocks.contains(id) || cropBlocks.contains(lowerID)) {
+            return true;
+        }
+
+        // Check patterns
+        for (String pattern : cropPatterns) {
+            if (lowerID.contains(pattern)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Add a block ID to the USE group.
      */
     public void addUseBlock(String blockId) {
@@ -409,5 +483,7 @@ public class BlockGroups {
         Set<String> containerPatterns;
         Set<String> workstationBlocks;
         Set<String> workstationPatterns;
+        Set<String> cropBlocks;
+        Set<String> cropPatterns;
     }
 }

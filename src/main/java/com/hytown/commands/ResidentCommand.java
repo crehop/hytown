@@ -30,7 +30,7 @@ public class ResidentCommand extends AbstractPlayerCommand {
     private static final Color GRAY = new Color(170, 170, 170);
 
     public ResidentCommand(HyTown plugin) {
-        super("resident", "View resident information");
+        super("resident", "View player's town status, rank, join date, and activity. Usage: /resident [player]");
         addAliases("res");
         setAllowsExtraArguments(true);
         requirePermission("hytown.use");

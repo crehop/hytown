@@ -138,6 +138,10 @@ public class ClaimTitleSystem extends EntityTickingSystem<EntityStore> {
                     titleMessage = Message.raw(ownerName + "'s Claim").color(Color.WHITE);
                 }
                 subtitleMessage = Message.raw("Claim").color(new Color(170, 170, 170));
+            } else {
+                // Wilderness - show PVP ON
+                titleMessage = Message.raw("Wilderness").color(GREEN);
+                subtitleMessage = Message.raw("PVP: ON").color(RED);
             }
         }
 

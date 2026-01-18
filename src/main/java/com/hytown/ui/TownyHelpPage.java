@@ -79,12 +79,12 @@ public class TownyHelpPage extends BasicCustomUIPage {
 
         // Admin Commands
         content.append("=== Admin Commands ===\n");
-        content.append("/townyadmin reload - Reload config\n");
-        content.append("/townyadmin town <name> - Manage town\n");
-        content.append("/townyadmin wild toggle - Toggle wild protection\n");
-        content.append("/townyadmin wild sety <level> - Set Y threshold\n");
-        content.append("/townyadmin save - Force save all data\n");
-        content.append("/townyadmin debug - Show debug info\n");
+        content.append("/townadmin reload - Reload config\n");
+        content.append("/townadmin town <name> - Manage town\n");
+        content.append("/townadmin wild toggle - Toggle wild protection\n");
+        content.append("/townadmin wild sety <level> - Set Y threshold\n");
+        content.append("/townadmin save - Force save all data\n");
+        content.append("/townadmin debug - Show debug info\n");
 
         builder.append("Pages/BarterPage.ui");
         builder.set("#ShopTitle.Text", "HyTown Help");

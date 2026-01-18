@@ -2,6 +2,8 @@ package com.hytown;
 
 import com.hytown.data.ClaimStorage;
 import com.hytown.data.PlayerClaims;
+import com.hytown.data.Town;
+import com.hytown.data.TownStorage;
 import com.hytown.data.TrustedPlayer;
 
 import java.util.ArrayList;
@@ -16,14 +18,17 @@ import java.util.UUID;
  */
 public class HyTownAccess {
     private static ClaimStorage claimStorage;
+    private static TownStorage townStorage;
 
     /**
-     * Initializes the accessor with the claim storage instance.
+     * Initializes the accessor with the claim and town storage instances.
      * Called during plugin startup.
      */
-    public static void init(ClaimStorage storage) {
+    public static void init(ClaimStorage storage, TownStorage towns) {
         claimStorage = storage;
-        System.out.println("[HyTownAccess] Initialized with claimStorage: " + (storage != null ? "OK" : "NULL"));
+        townStorage = towns;
+        System.out.println("[HyTownAccess] Initialized with claimStorage: " + (storage != null ? "OK" : "NULL") +
+                           ", townStorage: " + (towns != null ? "OK" : "NULL"));
     }
 
     /**
@@ -54,13 +59,26 @@ public class HyTownAccess {
     }
 
     /**
-     * Gets the owner name for a claimed chunk.
+     * Gets the display name for a claimed chunk.
+     * Returns the town name if this chunk belongs to a town, otherwise the player name.
      */
     public static String getOwnerName(String worldName, int chunkX, int chunkZ) {
         UUID owner = getClaimOwner(worldName, chunkX, chunkZ);
         if (owner == null) {
             return null;
         }
+
+        // Check if this chunk belongs to a town
+        if (townStorage != null) {
+            String claimKey = worldName + ":" + chunkX + "," + chunkZ;
+            Town town = townStorage.getTownByClaimKey(claimKey);
+            if (town != null) {
+                // Return the town name instead of the player name
+                return town.getName();
+            }
+        }
+
+        // Not a town claim, return the player name
         return getPlayerName(owner);
     }
 

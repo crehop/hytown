@@ -138,7 +138,7 @@ public class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, B
             // WILDERNESS - check wild protection
             if (config.isWildProtectionEnabled()) {
                 // Check bypass permission
-                if (player.hasPermission("towny.wild.bypass")) {
+                if (player.hasPermission("hytown.wild.bypass")) {
                     return;
                 }
 

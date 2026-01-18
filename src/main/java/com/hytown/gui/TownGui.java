@@ -48,6 +48,8 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
     private boolean statusIsError = false;
     private String currentTab = "main"; // main, create, bank, settings, members
     private boolean confirmingLeave = false;
+    private boolean confirmingUnclaim = false;
+    private String pendingUnclaimKey = null;
     private List<UUID> displayedMemberIds = new ArrayList<>();
     private static final int MAX_DISPLAYED_MEMBERS = 8;
 
@@ -300,14 +302,30 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
                 if (!town.ownsClaim(claimKey)) {
                     statusMessage = "Not your claim!";
                     statusIsError = true;
+                    confirmingUnclaim = false;
+                    pendingUnclaimKey = null;
                     return;
                 }
 
+                // Require confirmation
+                if (!confirmingUnclaim || !claimKey.equals(pendingUnclaimKey)) {
+                    confirmingUnclaim = true;
+                    pendingUnclaimKey = claimKey;
+                    statusMessage = "Click Unclaim again to confirm [" + chunkX + "," + chunkZ + "]";
+                    statusIsError = true;
+                    return;
+                }
+
+                // Confirmed - actually unclaim
+                confirmingUnclaim = false;
+                pendingUnclaimKey = null;
+
                 plugin.getClaimStorage().removeClaim(town.getMayorId(), worldName, chunkX, chunkZ);
                 town.removeClaim(claimKey);
+                town.setPlotOwner(claimKey, null); // Clear plot owner
                 townStorage.saveTown(town);
                 plugin.refreshWorldMapChunk(worldName, chunkX, chunkZ);
-                statusMessage = "Unclaimed!";
+                statusMessage = "Unclaimed [" + chunkX + "," + chunkZ + "]! Remaining: " + town.getClaimCount();
                 statusIsError = false;
             }
 
@@ -409,8 +427,57 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
                     return;
                 }
 
-                // For now just show a success message - actual invite system would require more complex logic
-                statusMessage = "Invited " + playerNameInput + "!";
+                // Find target player online
+                UUID targetId = null;
+                String targetName = playerNameInput;
+                for (World w : HyTown.WORLDS.values()) {
+                    for (Player p : w.getPlayers()) {
+                        if (p.getDisplayName().equalsIgnoreCase(playerNameInput)) {
+                            targetId = p.getUuid();
+                            targetName = p.getDisplayName();
+                            break;
+                        }
+                    }
+                    if (targetId != null) break;
+                }
+
+                if (targetId == null) {
+                    statusMessage = "Player not found online!";
+                    statusIsError = true;
+                    return;
+                }
+
+                // Check if already in a town
+                Town existingTown = townStorage.getPlayerTown(targetId);
+                if (existingTown != null) {
+                    statusMessage = targetName + " is in another town!";
+                    statusIsError = true;
+                    return;
+                }
+
+                // Check if already invited
+                if (townStorage.hasInvite(targetId, town.getName())) {
+                    statusMessage = targetName + " already invited!";
+                    statusIsError = true;
+                    return;
+                }
+
+                // Store the invite
+                townStorage.addInvite(targetId, town.getName());
+
+                // Send message to target player
+                for (World w : HyTown.WORLDS.values()) {
+                    for (Player p : w.getPlayers()) {
+                        if (p.getUuid().equals(targetId)) {
+                            p.sendMessage(Message.raw("You have been invited to join " + town.getName() + "!").color(GREEN));
+                            p.sendMessage(Message.raw("Invited by: " + playerName).color(new Color(255, 255, 255)));
+                            p.sendMessage(Message.raw("Type /town join " + town.getName() + " to accept").color(new Color(255, 255, 85)));
+                            break;
+                        }
+                    }
+                }
+
+                statusMessage = "Invited " + targetName + "!";
                 statusIsError = false;
                 playerNameInput = "";
             }
@@ -584,11 +651,26 @@ public class TownGui extends InteractiveCustomUIPage<TownGui.TownData> {
         // Town info section
         if (town != null) {
             cmd.set("#TownName.Text", town.getName());
-            cmd.set("#TownInfo.Text",
-                "Mayor: " + town.getMayorName() + "\n" +
-                "Residents: " + town.getResidentCount() + "\n" +
-                "Claims: " + town.getClaimCount() + "/" + plugin.getPluginConfig().getMaxTownClaims()
-            );
+
+            // Build info text with first claim coords
+            StringBuilder infoText = new StringBuilder();
+            infoText.append("Mayor: ").append(town.getMayorName()).append("\n");
+            infoText.append("Residents: ").append(town.getResidentCount()).append("\n");
+            infoText.append("Claims: ").append(town.getClaimCount()).append("/").append(plugin.getPluginConfig().getMaxTownClaims());
+
+            // Show first claim coordinates (converted to block coords)
+            String firstClaim = town.getFirstClaimKey();
+            if (firstClaim != null) {
+                int[] chunkCoords = Town.parseClaimCoords(firstClaim);
+                if (chunkCoords != null) {
+                    // Convert chunk coords to block coords (center of chunk)
+                    int blockX = chunkCoords[0] * 16 + 8;
+                    int blockZ = chunkCoords[1] * 16 + 8;
+                    infoText.append("\nOrigin: X=").append(blockX).append(", Z=").append(blockZ);
+                }
+            }
+
+            cmd.set("#TownInfo.Text", infoText.toString());
             cmd.set("#NoTownMessage.Visible", false);
             cmd.set("#TownInfoPanel.Visible", true);
             cmd.set("#CreateTownPanel.Visible", false);

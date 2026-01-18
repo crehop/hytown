@@ -19,7 +19,7 @@ import java.awt.Color;
 import java.util.UUID;
 
 /**
- * /townyadmin command - Admin commands for managing towns.
+ * /townadmin command - Admin commands for managing towns.
  */
 public class TownyAdminCommand extends AbstractPlayerCommand {
 
@@ -32,9 +32,9 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
     private static final Color GRAY = new Color(170, 170, 170);
 
     public TownyAdminCommand(HyTown plugin) {
-        super("townyadmin", "Admin commands for town management");
-        addAliases("ta");
-        requirePermission("towny.admin");
+        super("townadmin", "[Admin] Manage towns - delete towns, set balances, reload config, wilderness protection. Requires admin permission");
+        addAliases("ta", "townyadmin");
+        requirePermission("hytown.admin");
         setAllowsExtraArguments(true);
         this.plugin = plugin;
     }
@@ -43,7 +43,7 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
         String input = ctx.getInputString().trim();
         if (input.isEmpty()) return new String[0];
         String[] allArgs = input.split("\\s+");
-        if (allArgs.length > 0 && (allArgs[0].equalsIgnoreCase("townyadmin") || allArgs[0].equalsIgnoreCase("ta"))) {
+        if (allArgs.length > 0 && (allArgs[0].equalsIgnoreCase("townadmin") || allArgs[0].equalsIgnoreCase("townyadmin") || allArgs[0].equalsIgnoreCase("ta"))) {
             String[] args = new String[allArgs.length - 1];
             System.arraycopy(allArgs, 1, args, 0, allArgs.length - 1);
             return args;
@@ -93,7 +93,7 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
 
     private void handleTown(PlayerRef playerData, String townName, String subAction, String arg) {
         if (townName == null || townName.isEmpty()) {
-            playerData.sendMessage(Message.raw("Usage: /townyadmin town <name> [action]").color(RED));
+            playerData.sendMessage(Message.raw("Usage: /townadmin town <name> [action]").color(RED));
             return;
         }
 
@@ -121,7 +121,7 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
             }
             case "kick" -> {
                 if (arg == null) {
-                    playerData.sendMessage(Message.raw("Usage: /townyadmin town " + townName + " kick <player>").color(RED));
+                    playerData.sendMessage(Message.raw("Usage: /townadmin town " + townName + " kick <player>").color(RED));
                     return;
                 }
                 UUID targetId = null;
@@ -144,7 +144,7 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
             }
             case "setmayor" -> {
                 if (arg == null) {
-                    playerData.sendMessage(Message.raw("Usage: /townyadmin town " + townName + " setmayor <player>").color(RED));
+                    playerData.sendMessage(Message.raw("Usage: /townadmin town " + townName + " setmayor <player>").color(RED));
                     return;
                 }
                 UUID newMayorId = null;
@@ -166,7 +166,7 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
             }
             case "setbalance" -> {
                 if (arg == null) {
-                    playerData.sendMessage(Message.raw("Usage: /townyadmin town " + townName + " setbalance <amount>").color(RED));
+                    playerData.sendMessage(Message.raw("Usage: /townadmin town " + townName + " setbalance <amount>").color(RED));
                     return;
                 }
                 try {
@@ -184,7 +184,7 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
 
     private void handleWild(PlayerRef playerData, String subAction, String arg) {
         if (subAction == null || subAction.isEmpty()) {
-            playerData.sendMessage(Message.raw("Usage: /townyadmin wild <toggle|sety|info>").color(RED));
+            playerData.sendMessage(Message.raw("Usage: /townadmin wild <toggle|sety|info>").color(RED));
             return;
         }
 
@@ -198,7 +198,7 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
             }
             case "sety" -> {
                 if (arg == null) {
-                    playerData.sendMessage(Message.raw("Usage: /townyadmin wild sety <y-level>").color(RED));
+                    playerData.sendMessage(Message.raw("Usage: /townadmin wild sety <y-level>").color(RED));
                     return;
                 }
                 try {
@@ -248,7 +248,7 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
 
     private void handleSet(PlayerRef playerData, String setting, String value) {
         if (setting == null || setting.isEmpty()) {
-            playerData.sendMessage(Message.raw("Usage: /townyadmin set <towncost|claimcost|wildminy> <value>").color(RED));
+            playerData.sendMessage(Message.raw("Usage: /townadmin set <towncost|claimcost|wildminy> <value>").color(RED));
             return;
         }
 
@@ -300,13 +300,13 @@ public class TownyAdminCommand extends AbstractPlayerCommand {
 
     private void showHelp(PlayerRef playerData) {
         playerData.sendMessage(Message.raw("========== Towny Admin ==========").color(GOLD));
-        playerData.sendMessage(Message.raw("/townyadmin gui - Open admin control panel").color(WHITE));
-        playerData.sendMessage(Message.raw("/townyadmin reload - Reload config").color(WHITE));
-        playerData.sendMessage(Message.raw("/townyadmin save - Force save data").color(WHITE));
-        playerData.sendMessage(Message.raw("/townyadmin debug - Show debug info").color(WHITE));
-        playerData.sendMessage(Message.raw("/townyadmin town <name> - View town").color(WHITE));
-        playerData.sendMessage(Message.raw("/townyadmin town <name> delete").color(WHITE));
-        playerData.sendMessage(Message.raw("/townyadmin wild <toggle|sety|info>").color(WHITE));
-        playerData.sendMessage(Message.raw("/townyadmin set <setting> <value>").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin gui - Open admin control panel").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin reload - Reload config").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin save - Force save data").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin debug - Show debug info").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin town <name> - View town").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin town <name> delete").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin wild <toggle|sety|info>").color(WHITE));
+        playerData.sendMessage(Message.raw("/townadmin set <setting> <value>").color(WHITE));
     }
 }

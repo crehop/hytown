@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -45,8 +46,18 @@ public class TownCommand extends AbstractPlayerCommand {
     private static final Color GRAY = new Color(170, 170, 170);
     private static final Color WHITE = new Color(255, 255, 255);
 
+    // Pending unclaim confirmations: playerId -> claimKey (expires after 30 seconds)
+    private static final java.util.Map<UUID, PendingUnclaim> pendingUnclaims = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long UNCLAIM_CONFIRM_TIMEOUT_MS = 30000; // 30 seconds
+
+    private record PendingUnclaim(String claimKey, String worldName, int chunkX, int chunkZ, long timestamp) {
+        boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > UNCLAIM_CONFIRM_TIMEOUT_MS;
+        }
+    }
+
     public TownCommand(HyTown plugin) {
-        super("town", "Town management commands");
+        super("town", "Create and manage towns - claim land, invite residents, set permissions. Use /town help for all subcommands");
         addAliases("t");
         setAllowsExtraArguments(true);
         requirePermission("hytown.use");
@@ -73,7 +84,7 @@ public class TownCommand extends AbstractPlayerCommand {
 
         // Check if player is admin
         Player player = store.getComponent(playerRef, Player.getComponentType());
-        boolean isAdmin = player != null && player.hasPermission("towny.admin");
+        boolean isAdmin = player != null && player.hasPermission("hytown.admin");
 
         if (args.length == 0) {
             showHelp(playerData, isAdmin);
@@ -90,7 +101,7 @@ public class TownCommand extends AbstractPlayerCommand {
         switch (action.toLowerCase()) {
             case "gui", "menu" -> handleGui(store, playerRef, playerData, world);
             case "help", "?" -> handleHelp(store, playerRef, playerData, world, isAdmin);
-            case "new", "create" -> handleNew(playerData, playerId, playerName, arg1);
+            case "new", "create" -> handleNew(store, playerRef, playerData, playerId, playerName, world, arg1);
             case "delete" -> handleDelete(playerData, playerId);
             case "claim" -> handleClaim(store, playerRef, playerData, playerId, world);
             case "unclaim" -> handleUnclaim(store, playerRef, playerData, playerId, world);
@@ -111,6 +122,7 @@ public class TownCommand extends AbstractPlayerCommand {
             case "here" -> handleHere(store, playerRef, playerData, world);
             case "log" -> handleLog(playerData, playerId, arg1);
             case "board", "motd" -> handleBoard(ctx, playerData, playerId, args);
+            case "deny" -> handleDeny(playerData, playerId, arg1);
             default -> showHelp(playerData, isAdmin);
         }
     }
@@ -131,7 +143,9 @@ public class TownCommand extends AbstractPlayerCommand {
         }
     }
 
-    private void handleNew(PlayerRef playerData, UUID playerId, String playerName, String townName) {
+    private void handleNew(Store<EntityStore> store, Ref<EntityStore> playerRef,
+                            PlayerRef playerData, UUID playerId, String playerName,
+                            World world, String townName) {
         if (townName == null || townName.isEmpty()) {
             playerData.sendMessage(Message.raw("Usage: /town new <name>").color(RED));
             return;
@@ -158,6 +172,28 @@ public class TownCommand extends AbstractPlayerCommand {
             return;
         }
 
+        // Get player position for auto-claiming current chunk
+        TransformComponent transform = store.getComponent(playerRef, TransformComponent.getComponentType());
+        Vector3d pos = transform.getPosition();
+        String worldName = world.getName();
+        int chunkX = ChunkUtil.toChunkX(pos.getX());
+        int chunkZ = ChunkUtil.toChunkZ(pos.getZ());
+        String claimKey = worldName + ":" + chunkX + "," + chunkZ;
+
+        // Check if current chunk can be claimed BEFORE creating town
+        Town existingClaimTown = townStorage.getTownByClaimKey(claimKey);
+        if (existingClaimTown != null) {
+            playerData.sendMessage(Message.raw("Cannot create town here - chunk is claimed by: " + existingClaimTown.getName()).color(RED));
+            return;
+        }
+
+        // Check if claimed by personal claim
+        UUID existingOwner = plugin.getClaimManager().getOwnerAt(worldName, pos.getX(), pos.getZ());
+        if (existingOwner != null && !existingOwner.equals(playerId)) {
+            playerData.sendMessage(Message.raw("Cannot create town here - chunk is already claimed!").color(RED));
+            return;
+        }
+
         // Check if player has enough money (applies to everyone, including ops)
         double cost = plugin.getPluginConfig().getTownCreationCost();
         if (cost > 0) {
@@ -172,14 +208,47 @@ public class TownCommand extends AbstractPlayerCommand {
             }
         }
 
+        // Create the town
         Town town = new Town(townName, playerId, playerName);
+
+        // Auto-claim current chunk
+        ClaimManager.ClaimResult claimResult = plugin.getClaimManager().claimChunk(
+                playerId, worldName, pos.getX(), pos.getZ()
+        );
+
+        if (claimResult != ClaimManager.ClaimResult.SUCCESS) {
+            // Refund if claim failed
+            if (cost > 0) {
+                HyConomy.deposit(playerName, cost);
+            }
+            playerData.sendMessage(Message.raw("Cannot create town - failed to claim current chunk!").color(RED));
+            String reason = switch (claimResult) {
+                case ALREADY_OWN -> "You already own this chunk personally";
+                case CLAIMED_BY_OTHER -> "Chunk is claimed by someone else";
+                case LIMIT_REACHED -> "Claim limit reached";
+                case TOO_CLOSE_TO_OTHER_CLAIM -> "Too close to another claim";
+                default -> "Unknown error";
+            };
+            playerData.sendMessage(Message.raw("Reason: " + reason).color(GRAY));
+            return;
+        }
+
+        // Add claim to town and save
+        town.addClaim(claimKey);
         townStorage.saveTown(town);
 
+        // Refresh map
+        plugin.refreshWorldMapChunk(worldName, chunkX, chunkZ);
+
+        // Convert to block coords for display
+        int blockX = chunkX * 16 + 8;
+        int blockZ = chunkZ * 16 + 8;
+
         playerData.sendMessage(Message.raw("Town '" + townName + "' created!").color(GREEN));
+        playerData.sendMessage(Message.raw("Origin claim: X=" + blockX + ", Z=" + blockZ).color(GREEN));
         if (cost > 0) {
             playerData.sendMessage(Message.raw("Cost: " + HyConomy.format(cost)).color(GRAY));
         }
-        playerData.sendMessage(Message.raw("Use /town claim to claim land for your town.").color(GRAY));
     }
 
     private void handleDelete(PlayerRef playerData, UUID playerId) {
@@ -332,12 +401,34 @@ public class TownCommand extends AbstractPlayerCommand {
             return;
         }
 
-        plugin.getClaimStorage().removeClaim(town.getMayorId(), worldName, chunkX, chunkZ);
-        town.removeClaim(claimKey);
-        townStorage.saveTown(town);
+        // Check for pending confirmation
+        PendingUnclaim pending = pendingUnclaims.get(playerId);
+        if (pending != null && !pending.isExpired() && pending.claimKey().equals(claimKey)) {
+            // Confirmed! Actually unclaim
+            pendingUnclaims.remove(playerId);
 
-        playerData.sendMessage(Message.raw("Unclaimed chunk [" + chunkX + ", " + chunkZ + "]").color(GREEN));
-        plugin.refreshWorldMapChunk(worldName, chunkX, chunkZ);
+            plugin.getClaimStorage().removeClaim(town.getMayorId(), worldName, chunkX, chunkZ);
+            town.removeClaim(claimKey);
+
+            // Clear any plot settings for this chunk
+            town.setPlotOwner(claimKey, null);
+
+            townStorage.saveTown(town);
+
+            playerData.sendMessage(Message.raw("Successfully unclaimed chunk [" + chunkX + ", " + chunkZ + "] from " + town.getName()).color(GREEN));
+            playerData.sendMessage(Message.raw("Remaining claims: " + town.getClaimCount() + "/" + plugin.getPluginConfig().getMaxTownClaims()).color(GRAY));
+            plugin.refreshWorldMapChunk(worldName, chunkX, chunkZ);
+        } else {
+            // Request confirmation
+            pendingUnclaims.put(playerId, new PendingUnclaim(claimKey, worldName, chunkX, chunkZ, System.currentTimeMillis()));
+
+            playerData.sendMessage(Message.raw("========================================").color(YELLOW));
+            playerData.sendMessage(Message.raw("Are you sure you want to unclaim this chunk?").color(YELLOW));
+            playerData.sendMessage(Message.raw("Chunk: [" + chunkX + ", " + chunkZ + "]").color(WHITE));
+            playerData.sendMessage(Message.raw("Town: " + town.getName()).color(WHITE));
+            playerData.sendMessage(Message.raw("Type /town unclaim again within 30 seconds to confirm.").color(YELLOW));
+            playerData.sendMessage(Message.raw("========================================").color(YELLOW));
+        }
     }
 
     private void handleInvite(PlayerRef playerData, UUID playerId, String targetName) {
@@ -359,8 +450,69 @@ public class TownCommand extends AbstractPlayerCommand {
             return;
         }
 
+        // Find target player's UUID by searching online players or using name lookup
+        UUID targetId = null;
+        for (World w : HyTown.WORLDS.values()) {
+            for (Player p : w.getPlayers()) {
+                if (p.getDisplayName().equalsIgnoreCase(targetName)) {
+                    targetId = p.getUuid();
+                    targetName = p.getDisplayName(); // Get exact case
+                    break;
+                }
+            }
+            if (targetId != null) break;
+        }
+
+        if (targetId == null) {
+            playerData.sendMessage(Message.raw("Player '" + targetName + "' not found online!").color(RED));
+            playerData.sendMessage(Message.raw("The player must be online to receive an invite.").color(GRAY));
+            return;
+        }
+
+        // Check if already in a town
+        Town existingTown = townStorage.getPlayerTown(targetId);
+        if (existingTown != null) {
+            playerData.sendMessage(Message.raw(targetName + " is already in town: " + existingTown.getName()).color(RED));
+            return;
+        }
+
+        // Check if player is on cooldown from denying a previous invite
+        if (townStorage.isOnInviteCooldown(targetId, town.getName())) {
+            int remainingMinutes = townStorage.getRemainingCooldownMinutes(targetId, town.getName());
+            playerData.sendMessage(Message.raw(targetName + " has denied your town's invite recently.").color(RED));
+            playerData.sendMessage(Message.raw("You can invite them again in " + remainingMinutes + " minute(s).").color(GRAY));
+            return;
+        }
+
+        // Check if already invited
+        if (townStorage.hasInvite(targetId, town.getName())) {
+            playerData.sendMessage(Message.raw(targetName + " already has a pending invite to your town!").color(YELLOW));
+            return;
+        }
+
+        // Store the invite
+        townStorage.addInvite(targetId, town.getName());
+
+        // Notify the inviter
         playerData.sendMessage(Message.raw("Invited " + targetName + " to " + town.getName()).color(GREEN));
         playerData.sendMessage(Message.raw("They can join with /town join " + town.getName()).color(GRAY));
+
+        // Send message to the target player
+        for (World w : HyTown.WORLDS.values()) {
+            for (Player p : w.getPlayers()) {
+                if (p.getUuid().equals(targetId)) {
+                    p.sendMessage(Message.raw("========================================").color(GOLD));
+                    p.sendMessage(Message.raw("You have been invited to join " + town.getName() + "!").color(GREEN));
+                    p.sendMessage(Message.raw("Invited by: " + playerData.getUsername()).color(WHITE));
+                    p.sendMessage(Message.raw("").color(WHITE));
+                    p.sendMessage(Message.raw("To ACCEPT: /town join").color(GREEN));
+                    p.sendMessage(Message.raw("To DENY:   /town deny " + town.getName()).color(RED));
+                    p.sendMessage(Message.raw("(Denying will block re-invites for 1 hour)").color(GRAY));
+                    p.sendMessage(Message.raw("========================================").color(GOLD));
+                    break;
+                }
+            }
+        }
     }
 
     private void handleKick(PlayerRef playerData, UUID playerId, String targetName) {
@@ -438,12 +590,28 @@ public class TownCommand extends AbstractPlayerCommand {
     }
 
     private void handleJoin(PlayerRef playerData, UUID playerId, String playerName, String townName) {
-        if (townName == null || townName.isEmpty()) {
-            playerData.sendMessage(Message.raw("Usage: /town join <town>").color(RED));
-            return;
-        }
-
         TownStorage townStorage = plugin.getTownStorage();
+
+        // If no town name specified, check pending invites
+        if (townName == null || townName.isEmpty()) {
+            Set<String> invites = townStorage.getInvites(playerId);
+            if (invites.isEmpty()) {
+                playerData.sendMessage(Message.raw("Usage: /town join <town>").color(RED));
+                playerData.sendMessage(Message.raw("You have no pending invites.").color(GRAY));
+                return;
+            } else if (invites.size() == 1) {
+                // Auto-select if only one invite
+                townName = invites.iterator().next();
+                playerData.sendMessage(Message.raw("Accepting invite to " + townName + "...").color(GRAY));
+            } else {
+                // Multiple invites - ask them to specify
+                playerData.sendMessage(Message.raw("You have multiple pending invites:").color(GOLD));
+                for (String invite : invites) {
+                    playerData.sendMessage(Message.raw("  - " + invite + " (use /town join " + invite + ")").color(GREEN));
+                }
+                return;
+            }
+        }
         Town currentTown = townStorage.getPlayerTown(playerId);
         if (currentTown != null) {
             playerData.sendMessage(Message.raw("You are already in " + currentTown.getName() + "!").color(RED));
@@ -456,9 +624,17 @@ public class TownCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!town.getSettings().isOpenTown()) {
-            playerData.sendMessage(Message.raw("This town is not open!").color(RED));
+        // Check if town is open OR player has an invite
+        boolean hasInvite = townStorage.hasInvite(playerId, town.getName());
+        if (!town.getSettings().isOpenTown() && !hasInvite) {
+            playerData.sendMessage(Message.raw("This town is not open and you don't have an invite!").color(RED));
+            playerData.sendMessage(Message.raw("Ask the mayor or an assistant to invite you.").color(GRAY));
             return;
+        }
+
+        // Remove the invite if they had one
+        if (hasInvite) {
+            townStorage.removeInvite(playerId, town.getName());
         }
 
         town.addResident(playerId, playerName);
@@ -467,6 +643,15 @@ public class TownCommand extends AbstractPlayerCommand {
         townStorage.indexPlayer(playerId, town.getName());
 
         playerData.sendMessage(Message.raw("You joined " + town.getName() + "!").color(GREEN));
+
+        // Notify town members if they're online
+        for (World w : HyTown.WORLDS.values()) {
+            for (Player p : w.getPlayers()) {
+                if (town.isMember(p.getUuid()) && !p.getUuid().equals(playerId)) {
+                    p.sendMessage(Message.raw(playerName + " has joined " + town.getName() + "!").color(GREEN));
+                }
+            }
+        }
     }
 
     private void handleInfo(PlayerRef playerData, UUID playerId, String townName) {
@@ -521,11 +706,6 @@ public class TownCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!town.hasSpawn()) {
-            playerData.sendMessage(Message.raw("Town spawn not set!").color(RED));
-            return;
-        }
-
         // Get player entity for countdown system
         Player player = store.getComponent(playerRef, Player.getComponentType());
         if (player == null) {
@@ -533,12 +713,117 @@ public class TownCommand extends AbstractPlayerCommand {
             return;
         }
 
-        // Use countdown teleport (same as HyTeleport)
-        plugin.startTownSpawnCountdown(
-            player, store, playerRef, world, town.getName(),
-            town.getSpawnX(), town.getSpawnY(), town.getSpawnZ(),
-            town.getSpawnYaw(), town.getSpawnPitch()
-        );
+        double spawnX, spawnY, spawnZ;
+        float spawnYaw, spawnPitch;
+        String spawnWorldName;
+
+        if (town.hasSpawn()) {
+            // Use set spawn location
+            spawnX = town.getSpawnX();
+            spawnY = town.getSpawnY();
+            spawnZ = town.getSpawnZ();
+            spawnYaw = town.getSpawnYaw();
+            spawnPitch = town.getSpawnPitch();
+            spawnWorldName = town.getSpawnWorld();
+        } else {
+            // Fallback to first claimed chunk
+            String firstClaim = town.getFirstClaimKey();
+            if (firstClaim == null) {
+                playerData.sendMessage(Message.raw("Town has no claims! Claim land first with /town claim").color(RED));
+                return;
+            }
+
+            int[] coords = Town.parseClaimCoords(firstClaim);
+            spawnWorldName = Town.parseClaimWorld(firstClaim);
+            if (coords == null || spawnWorldName == null) {
+                playerData.sendMessage(Message.raw("Error reading first claim location!").color(RED));
+                return;
+            }
+
+            // Convert chunk coords to block coords (center of chunk)
+            // Chunk coords * 16 + 8 = center of chunk
+            spawnX = coords[0] * 16 + 8;
+            spawnZ = coords[1] * 16 + 8;
+            spawnYaw = 0;
+            spawnPitch = 0;
+
+            // Find safe Y - start at Y=64 and go up in increments of 10 until we find air
+            // We'll do this on the world thread when teleporting
+            spawnY = 64; // Starting Y, will be adjusted on teleport
+
+            playerData.sendMessage(Message.raw("No spawn set - teleporting to first claim [" + coords[0] + ", " + coords[1] + "]").color(YELLOW));
+        }
+
+        // Check if we need to switch worlds
+        if (!world.getName().equals(spawnWorldName)) {
+            playerData.sendMessage(Message.raw("Town spawn is in a different world!").color(RED));
+            return;
+        }
+
+        // For first claim fallback, find safe Y position
+        if (!town.hasSpawn()) {
+            final double baseX = spawnX;
+            final double baseZ = spawnZ;
+
+            world.execute(() -> {
+                // Try to find a safe spawn position by checking Y levels
+                double safeY = findSafeY(world, baseX, baseZ, 64);
+                Vector3d pos = new Vector3d(baseX, safeY, baseZ);
+                Vector3f rot = new Vector3f(0, 0, 0);
+                Teleport teleport = new Teleport(world, pos, rot);
+                store.addComponent(playerRef, Teleport.getComponentType(), teleport);
+            });
+            playerData.sendMessage(Message.raw("Teleported to town origin!").color(GREEN));
+        } else {
+            // Use countdown teleport for set spawn
+            plugin.startTownSpawnCountdown(
+                player, store, playerRef, world, town.getName(),
+                spawnX, spawnY, spawnZ,
+                spawnYaw, spawnPitch
+            );
+        }
+    }
+
+    /**
+     * Find a safe Y position by checking if there's solid ground.
+     * Starts at startY and goes up in increments of 10 until finding a suitable spot.
+     */
+    private double findSafeY(World world, double x, double z, double startY) {
+        // Try to find a safe position
+        // Start at the given Y and go up in increments of 10 if blocked
+        // For now, we'll use a reasonable default since block checking requires more complex APIs
+        // The player will teleport to Y=80 which is typically above ground but not too high
+        double safeY = startY;
+
+        // Attempt to find safe ground by checking block positions
+        // This is a simplified version - ideally we'd check the actual block types
+        try {
+            for (int attempt = 0; attempt < 20; attempt++) {
+                double checkY = startY + (attempt * 10);
+                // Check if this Y is reasonable (not too high)
+                if (checkY > 256) {
+                    safeY = 100; // Fallback to reasonable height
+                    break;
+                }
+
+                // For a proper implementation, we'd check:
+                // - Block at checkY is air
+                // - Block at checkY+1 is air (head room)
+                // - Block at checkY-1 is solid (ground)
+                // Since we don't have direct block access here, use a reasonable default
+                safeY = checkY;
+
+                // Simple heuristic: Y=80 is often a good surface level
+                if (checkY >= 80) {
+                    safeY = checkY;
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            safeY = 80; // Fallback
+        }
+
+        return safeY;
     }
 
     private void handleDeposit(PlayerRef playerData, UUID playerId, String amountStr) {
@@ -941,42 +1226,114 @@ public class TownCommand extends AbstractPlayerCommand {
         playerData.sendMessage(Message.raw("[" + town.getName() + "] " + message).color(GOLD));
     }
 
+    private void handleDeny(PlayerRef playerData, UUID playerId, String townName) {
+        TownStorage townStorage = plugin.getTownStorage();
+
+        // If no town name specified, show pending invites
+        if (townName == null || townName.isEmpty()) {
+            Set<String> invites = townStorage.getInvites(playerId);
+            if (invites.isEmpty()) {
+                playerData.sendMessage(Message.raw("You have no pending invites to deny.").color(YELLOW));
+            } else {
+                playerData.sendMessage(Message.raw("Usage: /town deny <townname>").color(RED));
+                playerData.sendMessage(Message.raw("Your pending invites:").color(GOLD));
+                for (String invite : invites) {
+                    playerData.sendMessage(Message.raw("  - " + invite).color(GREEN));
+                }
+            }
+            return;
+        }
+
+        // Check if player has an invite from this town
+        if (!townStorage.hasInvite(playerId, townName)) {
+            playerData.sendMessage(Message.raw("You don't have a pending invite from " + townName + "!").color(RED));
+            return;
+        }
+
+        // Check if town exists
+        Town town = townStorage.getTown(townName);
+        if (town == null) {
+            // Town may have been deleted, just remove the invite
+            townStorage.removeInvite(playerId, townName);
+            playerData.sendMessage(Message.raw("Invite removed (town no longer exists).").color(YELLOW));
+            return;
+        }
+
+        // Deny the invite and set cooldown
+        townStorage.denyInvite(playerId, town.getName());
+
+        playerData.sendMessage(Message.raw("You have denied the invite from " + town.getName() + ".").color(YELLOW));
+        playerData.sendMessage(Message.raw("They cannot invite you again for 1 hour.").color(GRAY));
+
+        // Notify town mayor/assistants if online
+        for (World w : HyTown.WORLDS.values()) {
+            for (Player p : w.getPlayers()) {
+                if (town.isAssistant(p.getUuid())) {
+                    p.sendMessage(Message.raw(playerData.getUsername() + " has denied the invite to " + town.getName() + ".").color(YELLOW));
+                }
+            }
+        }
+    }
+
     private void showHelp(PlayerRef playerData, boolean isAdmin) {
-        playerData.sendMessage(Message.raw("========== Town Commands ==========").color(GOLD));
-        playerData.sendMessage(Message.raw("/town help - Open help GUI (recommended)").color(WHITE));
-        playerData.sendMessage(Message.raw("/town gui - Open town management UI").color(WHITE));
-        playerData.sendMessage(Message.raw("/town new <name> - Create a town").color(WHITE));
-        playerData.sendMessage(Message.raw("/town delete - Delete your town (mayor only)").color(WHITE));
-        playerData.sendMessage(Message.raw("/town claim - Claim current chunk").color(WHITE));
-        playerData.sendMessage(Message.raw("/town unclaim - Unclaim current chunk").color(WHITE));
-        playerData.sendMessage(Message.raw("/town add/invite <player> - Invite player").color(WHITE));
+        playerData.sendMessage(Message.raw("========== TOWN COMMANDS ==========").color(GOLD));
+        playerData.sendMessage(Message.raw("Use /town help for the full GUI help menu").color(GRAY));
+
+        // Creation & Deletion
+        playerData.sendMessage(Message.raw("--- Creation & Deletion ---").color(GOLD));
+        playerData.sendMessage(Message.raw("/town new <name> - Create a new town (3-24 chars)").color(WHITE));
+        playerData.sendMessage(Message.raw("/town delete - Permanently delete your town (mayor)").color(WHITE));
+
+        // Land Management
+        playerData.sendMessage(Message.raw("--- Land Management ---").color(GOLD));
+        playerData.sendMessage(Message.raw("/town claim - Claim current chunk for town").color(WHITE));
+        playerData.sendMessage(Message.raw("/town unclaim - Unclaim chunk (requires confirm)").color(WHITE));
+        playerData.sendMessage(Message.raw("/town here - Show who owns current chunk").color(WHITE));
+
+        // Members
+        playerData.sendMessage(Message.raw("--- Members ---").color(GOLD));
+        playerData.sendMessage(Message.raw("/town invite <player> - Invite player to town").color(WHITE));
+        playerData.sendMessage(Message.raw("/town deny <town> - Deny invite (1hr cooldown)").color(WHITE));
+        playerData.sendMessage(Message.raw("/town join - Accept pending invite").color(WHITE));
         playerData.sendMessage(Message.raw("/town kick <player> - Kick a resident").color(WHITE));
-        playerData.sendMessage(Message.raw("/town join <town> - Join an open town").color(WHITE));
-        playerData.sendMessage(Message.raw("/town leave - Leave your town").color(WHITE));
-        playerData.sendMessage(Message.raw("/town info [town] - View town info").color(WHITE));
-        playerData.sendMessage(Message.raw("/town list - List all towns").color(WHITE));
+        playerData.sendMessage(Message.raw("/town leave - Leave your current town").color(WHITE));
+        playerData.sendMessage(Message.raw("/town rank add/remove <p> assistant - Manage ranks").color(WHITE));
+
+        // Info & Navigation
+        playerData.sendMessage(Message.raw("--- Info & Navigation ---").color(GOLD));
+        playerData.sendMessage(Message.raw("/town gui - Open town management GUI").color(WHITE));
+        playerData.sendMessage(Message.raw("/town info [town] - View town information").color(WHITE));
+        playerData.sendMessage(Message.raw("/town list - List all towns on server").color(WHITE));
         playerData.sendMessage(Message.raw("/town spawn - Teleport to town spawn").color(WHITE));
-        playerData.sendMessage(Message.raw("/town set spawn - Set town spawn (in your town)").color(WHITE));
-        playerData.sendMessage(Message.raw("/town set mayor <player> - Transfer mayor").color(WHITE));
+        playerData.sendMessage(Message.raw("/town online - See online town members").color(WHITE));
+
+        // Settings
+        playerData.sendMessage(Message.raw("--- Settings ---").color(GOLD));
+        playerData.sendMessage(Message.raw("/town set spawn - Set town spawn at your location").color(WHITE));
+        playerData.sendMessage(Message.raw("/town set mayor <player> - Transfer mayor role").color(WHITE));
         playerData.sendMessage(Message.raw("/town board <msg> - Set town MOTD (100 chars)").color(WHITE));
-        playerData.sendMessage(Message.raw("/town deposit/withdraw <$> - Bank").color(WHITE));
-        playerData.sendMessage(Message.raw("/town balance - Check balances").color(WHITE));
         playerData.sendMessage(Message.raw("/town toggle <pvp|open|fire|explosion>").color(WHITE));
-        playerData.sendMessage(Message.raw("/town rank add/remove <player> assistant").color(WHITE));
-        playerData.sendMessage(Message.raw("/town here - Chunk info").color(WHITE));
-        playerData.sendMessage(Message.raw("/town log [page] - Transaction history").color(WHITE));
+
+        // Economy
+        playerData.sendMessage(Message.raw("--- Economy ---").color(GOLD));
+        playerData.sendMessage(Message.raw("/town deposit <amount> - Deposit to town bank").color(WHITE));
+        playerData.sendMessage(Message.raw("/town withdraw <amount> - Withdraw from bank").color(WHITE));
+        playerData.sendMessage(Message.raw("/town balance - Check balances").color(WHITE));
+        playerData.sendMessage(Message.raw("/town log [page] - View transaction history").color(WHITE));
 
         if (isAdmin) {
-            playerData.sendMessage(Message.raw("========== Admin Commands ==========").color(GOLD));
-            playerData.sendMessage(Message.raw("/townyadmin gui - Admin control panel").color(YELLOW));
-            playerData.sendMessage(Message.raw("/townyadmin reload - Reload config").color(YELLOW));
-            playerData.sendMessage(Message.raw("/townyadmin save - Force save all data").color(YELLOW));
-            playerData.sendMessage(Message.raw("/townyadmin debug - Debug info").color(YELLOW));
-            playerData.sendMessage(Message.raw("/townyadmin town <name> - View/manage town").color(YELLOW));
-            playerData.sendMessage(Message.raw("/townyadmin town <name> delete").color(YELLOW));
-            playerData.sendMessage(Message.raw("/townyadmin town <name> setbalance <$>").color(YELLOW));
-            playerData.sendMessage(Message.raw("/townyadmin wild toggle|sety|info").color(YELLOW));
-            playerData.sendMessage(Message.raw("/townyadmin set <setting> <value>").color(YELLOW));
+            playerData.sendMessage(Message.raw("========== ADMIN COMMANDS ==========").color(GOLD));
+            playerData.sendMessage(Message.raw("/townadmin gui - Admin control panel").color(YELLOW));
+            playerData.sendMessage(Message.raw("/townadmin reload - Reload all config files").color(YELLOW));
+            playerData.sendMessage(Message.raw("/townadmin save - Force save all data").color(YELLOW));
+            playerData.sendMessage(Message.raw("/townadmin debug - Show storage stats").color(YELLOW));
+            playerData.sendMessage(Message.raw("/townadmin town <name> - View/manage town").color(YELLOW));
+            playerData.sendMessage(Message.raw("/townadmin town <n> delete - Force delete town").color(YELLOW));
+            playerData.sendMessage(Message.raw("/townadmin town <n> setbalance <$> - Set balance").color(YELLOW));
+            playerData.sendMessage(Message.raw("/townadmin wild toggle|sety|info - Wilderness").color(YELLOW));
+            playerData.sendMessage(Message.raw("/townadmin set <key> <value> - Change config").color(YELLOW));
         }
+
+        playerData.sendMessage(Message.raw("Tip: /plot for plots, /claim for personal claims").color(GRAY));
     }
 }

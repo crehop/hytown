@@ -193,6 +193,10 @@ public class Messages {
         return Message.raw("You don't have permission to access containers on this plot!").color(RED);
     }
 
+    public static Message cannotHarvestCrops() {
+        return Message.raw("You don't have permission to harvest crops in this area!").color(RED);
+    }
+
     // Unclaim all messages
     public static Message allClaimsRemoved(int count) {
         return Message.raw("Removed all " + count + " claims!").color(GREEN);

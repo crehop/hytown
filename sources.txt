@@ -6,8 +6,11 @@ C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\commands
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\commands\TownCommand.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\commands\TownyAdminCommand.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\commands\TownyHelpCommand.java
+C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\commands\TownPopCommand.java
+C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\commands\WildernessCommand.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\config\BlockGroups.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\config\PluginConfig.java
+C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\config\WildernessHarvestConfig.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\data\Claim.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\data\ClaimStorage.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\data\PlayerClaims.java
@@ -45,6 +48,8 @@ C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\systems\
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\systems\BlockPlaceProtectionSystem.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\systems\BlockUseProtectionSystem.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\systems\ClaimTitleSystem.java
+C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\systems\TownCreatureDespawnSystem.java
+C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\systems\WildernessHarvestSystem.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\ui\TownyHelpPage.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\util\ChunkUtil.java
 C:\Users\Crehop\Desktop\HyCrownDev\town\HyTown\src\main\java\com\hytown\util\Messages.java

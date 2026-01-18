@@ -6,8 +6,11 @@ import com.hytown.commands.ResidentCommand;
 import com.hytown.commands.PlotCommand;
 import com.hytown.commands.TownyAdminCommand;
 import com.hytown.commands.TownyHelpCommand;
+import com.hytown.commands.TownPopCommand;
+import com.hytown.commands.WildernessCommand;
 import com.hytown.config.BlockGroups;
 import com.hytown.config.PluginConfig;
+import com.hytown.config.WildernessHarvestConfig;
 import com.hytown.data.ClaimStorage;
 import com.hytown.data.PlaytimeStorage;
 import com.hytown.data.TownStorage;
@@ -21,6 +24,8 @@ import com.hytown.systems.BlockDamageProtectionSystem;
 import com.hytown.systems.BlockPlaceProtectionSystem;
 import com.hytown.systems.BlockUseProtectionSystem;
 import com.hytown.systems.ClaimTitleSystem;
+import com.hytown.systems.TownCreatureDespawnSystem;
+import com.hytown.systems.WildernessHarvestSystem;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
@@ -59,6 +64,7 @@ public class HyTown extends JavaPlugin {
 
     private PluginConfig config;
     private BlockGroups blockGroups;
+    private WildernessHarvestConfig wildernessHarvestConfig;
     private ClaimStorage claimStorage;
     private PlaytimeStorage playtimeStorage;
     private TownStorage townStorage;
@@ -90,6 +96,8 @@ public class HyTown extends JavaPlugin {
         // Initialize configuration
         config = new PluginConfig(getDataDirectory());
         blockGroups = new BlockGroups(getDataDirectory());
+        wildernessHarvestConfig = new WildernessHarvestConfig(getDataDirectory(), getLogger());
+        wildernessHarvestConfig.load();
 
         // Initialize storage
         claimStorage = new ClaimStorage(getDataDirectory());
@@ -97,7 +105,7 @@ public class HyTown extends JavaPlugin {
         townStorage = new TownStorage(getDataDirectory());
 
         // Initialize static accessor for map system
-        HyTownAccess.init(claimStorage);
+        HyTownAccess.init(claimStorage, townStorage);
 
         // Initialize managers
         claimManager = new ClaimManager(claimStorage, playtimeStorage, config, blockGroups);
@@ -113,7 +121,9 @@ public class HyTown extends JavaPlugin {
         getCommandRegistry().registerCommand(new PlotCommand(this));
         getCommandRegistry().registerCommand(new TownyAdminCommand(this));
         getCommandRegistry().registerCommand(new TownyHelpCommand(this));
-        getLogger().atInfo().log("Registered Towny commands: /town, /resident, /plot, /townyadmin, /townyhelp");
+        getCommandRegistry().registerCommand(new TownPopCommand(this));
+        getCommandRegistry().registerCommand(new WildernessCommand(this));
+        getLogger().atInfo().log("Registered town commands: /town, /resident, /plot, /townadmin, /townhelp, /townpop");
 
         // Register protection event listeners (for PlayerInteractEvent)
         protectionListener = new ClaimProtectionListener(this);
@@ -144,6 +154,8 @@ public class HyTown extends JavaPlugin {
         try {
             getLogger().atSevere().log("[DEBUG] Registering BlockDamageProtectionSystem...");
             getEntityStoreRegistry().registerSystem(new BlockDamageProtectionSystem(claimManager, getLogger()));
+            getLogger().atSevere().log("[DEBUG] Registering WildernessHarvestSystem (must run before BlockBreakProtectionSystem)...");
+            getEntityStoreRegistry().registerSystem(new WildernessHarvestSystem(claimManager, config, wildernessHarvestConfig, getLogger()));
             getLogger().atSevere().log("[DEBUG] Registering BlockBreakProtectionSystem...");
             getEntityStoreRegistry().registerSystem(new BlockBreakProtectionSystem(claimManager, config, townStorage, getLogger()));
             getLogger().atSevere().log("[DEBUG] Registering BlockPlaceProtectionSystem...");
@@ -156,6 +168,10 @@ public class HyTown extends JavaPlugin {
             claimTitleSystem = new ClaimTitleSystem(claimStorage, townStorage, config);
             getLogger().atSevere().log("[DEBUG] Registering ClaimTitleSystem...");
             getEntityStoreRegistry().registerSystem(claimTitleSystem);
+
+            // Register creature despawn system (prevents mob spawns in towns)
+            getLogger().atSevere().log("[DEBUG] Registering TownCreatureDespawnSystem...");
+            getEntityStoreRegistry().registerSystem(new TownCreatureDespawnSystem(claimManager, getLogger()));
 
             getLogger().atSevere().log("[DEBUG] All ECS systems registered successfully!");
         } catch (Exception e) {
@@ -227,6 +243,55 @@ public class HyTown extends JavaPlugin {
         upkeepThread.setName("HyTown-UpkeepChecker");
         upkeepThread.start();
         getLogger().atInfo().log("[Upkeep] Started background upkeep checker");
+
+        // Start auto-save thread
+        startAutoSave();
+    }
+
+    /**
+     * Start a background thread to auto-save town data periodically.
+     * This ensures data is saved even if the server crashes.
+     */
+    private void startAutoSave() {
+        Thread autoSaveThread = new Thread(() -> {
+            while (true) {
+                try {
+                    // Auto-save every 5 minutes
+                    Thread.sleep(300000);
+                    autoSaveTowns();
+                } catch (InterruptedException e) {
+                    // Interrupted - do one final save
+                    autoSaveTowns();
+                    break;
+                } catch (Exception e) {
+                    getLogger().atWarning().withCause(e).log("[AutoSave] Error during auto-save");
+                }
+            }
+        });
+        autoSaveThread.setDaemon(true);
+        autoSaveThread.setName("HyTown-AutoSave");
+        autoSaveThread.start();
+        getLogger().atInfo().log("[AutoSave] Started background auto-save (every 5 minutes)");
+    }
+
+    /**
+     * Perform auto-save of all town data.
+     */
+    private void autoSaveTowns() {
+        try {
+            if (townStorage != null) {
+                getLogger().atInfo().log("[AutoSave] Auto-saving town data...");
+                townStorage.saveAll();
+                // Also create a backup during auto-save
+                townStorage.createBackup();
+                getLogger().atInfo().log("[AutoSave] Auto-save complete");
+            }
+            if (claimStorage != null) {
+                claimStorage.saveAll();
+            }
+        } catch (Exception e) {
+            getLogger().atSevere().withCause(e).log("[AutoSave] CRITICAL: Auto-save failed!");
+        }
     }
 
     /**
@@ -308,22 +373,49 @@ public class HyTown extends JavaPlugin {
 
     @Override
     public void shutdown() {
+        getLogger().atInfo().log("[Shutdown] HyTown shutting down...");
+
+        // Shutdown teleport scheduler
+        try {
+            teleportScheduler.shutdownNow();
+        } catch (Exception e) {
+            getLogger().atWarning().withCause(e).log("[Shutdown] Error stopping teleport scheduler");
+        }
+
         // Shutdown playtime manager (saves all sessions)
         if (playtimeManager != null) {
-            playtimeManager.shutdown();
+            try {
+                getLogger().atInfo().log("[Shutdown] Saving playtime data...");
+                playtimeManager.shutdown();
+            } catch (Exception e) {
+                getLogger().atSevere().withCause(e).log("[Shutdown] ERROR saving playtime data!");
+            }
         }
 
         // Save all claim data
         if (claimStorage != null) {
-            claimStorage.saveAll();
+            try {
+                getLogger().atInfo().log("[Shutdown] Saving claim data...");
+                claimStorage.saveAll();
+            } catch (Exception e) {
+                getLogger().atSevere().withCause(e).log("[Shutdown] ERROR saving claim data!");
+            }
         }
 
-        // Save all town data
+        // Save all town data (most important!)
         if (townStorage != null) {
-            townStorage.saveAll();
+            try {
+                getLogger().atInfo().log("[Shutdown] Saving town data...");
+                townStorage.saveAll();
+                // Create a final backup on shutdown
+                townStorage.createBackup();
+                getLogger().atInfo().log("[Shutdown] Town data saved successfully. Stats: " + townStorage.getStats());
+            } catch (Exception e) {
+                getLogger().atSevere().withCause(e).log("[Shutdown] CRITICAL ERROR saving town data!");
+            }
         }
 
-        getLogger().atInfo().log("HyTown shutdown complete!");
+        getLogger().atInfo().log("[Shutdown] HyTown shutdown complete!");
     }
 
     public PluginConfig getPluginConfig() {
@@ -504,6 +596,14 @@ public class HyTown extends JavaPlugin {
      */
     public com.hytown.managers.UpkeepManager getUpkeepManager() {
         return upkeepManager;
+    }
+
+    /**
+     * Reloads the wilderness harvest configuration from file.
+     */
+    public void reloadWildernessHarvestConfig() {
+        wildernessHarvestConfig.load();
+        getLogger().atInfo().log("[HyTown] Wilderness harvest config reloaded");
     }
 
     /**
